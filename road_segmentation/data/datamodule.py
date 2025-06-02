@@ -18,9 +18,7 @@ def _ensure_data() -> None:
     images_dir = _DATA_ROOT / "training" / "images"
     if not images_dir.exists():
         with Repo(str(Path(__file__).resolve().parents[2])) as repo:
-            repo.pull(
-                targets=[str(images_dir.relative_to(_DATA_ROOT))],
-            )
+            repo.pull()
 
 
 class _SegDataset(Dataset):
