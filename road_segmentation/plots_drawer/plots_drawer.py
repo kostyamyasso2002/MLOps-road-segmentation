@@ -39,6 +39,7 @@ class PlotMetricsCallback(Callback):
 
         run_name = client.get_run(run_id).data.tags.get("mlflow.runName")
         self.out_dir = self.out_dir / run_name
+        self.out_dir.mkdir(exist_ok=True)
 
         train_loss_history = client.get_metric_history(run_id, key="train_loss")
         val_loss_history = client.get_metric_history(run_id, key="val_loss")
