@@ -82,6 +82,8 @@ class _SegDataset(Dataset):
         j = random.randint(0, x.shape[2] - self.size)
         x = F.crop(x, i, j, self.size, self.size)  # (3, 400, 400)
         y = F.crop(y, i, j, self.size, self.size)
+        y = (y > 0.5).float()  # бинаризация
+        assert torch.all((y < 1e-6) | (y > 0.999)), "Mask contains non-binary values"
         return x, y
 
     # ---------- main ----------
@@ -92,6 +94,8 @@ class _SegDataset(Dataset):
         # *** валидация без аугментаций ***
         x = self.tf_img(read_image(str(self.imgs[idx])))
         y = self.tf_mask(read_image(str(self.masks[idx]))[:1])  # (H,W)
+        y = (y > 0.5).float()
+        assert torch.all((y < 1e-6) | (y > 0.999)), "Mask contains non-binary values"
         return x, y
 
 
