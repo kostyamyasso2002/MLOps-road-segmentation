@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 import pytorch_lightning as pl
 import torch
 import torchvision
+from dvc.repo import Repo
 from torch.utils.data import DataLoader, Dataset
 from torchvision.io import read_image
 from torchvision.transforms import functional as F
@@ -13,11 +14,21 @@ from torchvision.transforms import v2 as T
 _DATA_ROOT = Path(__file__).resolve().parents[2] / "data" / "dataset"
 
 
-def _ensure_data():
-    if not (_DATA_ROOT / "training" / "images").exists():
-        import subprocess
+def _ensure_data() -> None:
+    """
+    Make sure the training images are present locally.
+    If they’re missing, fetch them from the DVC remote.
+    """
+    images_dir = _DATA_ROOT / "training" / "images"
 
-        subprocess.run(["dvc", "pull", "-q"], check=True)
+    if not images_dir.exists():
+        # `_DATA_ROOT` should be the root of the local DVC-enabled repo
+        with Repo(str(_DATA_ROOT)) as repo:
+            # Equivalent to: `dvc pull -q training/images`
+            repo.pull(
+                targets=[str(images_dir.relative_to(_DATA_ROOT))],
+                quiet=True,  # mirrors the CLI’s `-q`
+            )
 
 
 class _SegDataset(Dataset):
