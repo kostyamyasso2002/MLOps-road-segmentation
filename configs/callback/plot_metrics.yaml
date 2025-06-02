@@ -1,2 +1,0 @@
-_target_: road_segmentation.callbacks.plot_metrics.PlotMetricsCallback
-root: plots
