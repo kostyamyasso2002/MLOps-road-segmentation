@@ -21,7 +21,7 @@ class _ConvBlock(nn.Module):
 
 
 class MiniUNet(pl.LightningModule):
-    def __init__(self, lr: float = 1e-3):
+    def __init__(self, lr: float, threshold: float, pos_weight: float):
         super().__init__()
         self.save_hyperparameters()
 
@@ -37,10 +37,15 @@ class MiniUNet(pl.LightningModule):
         self.conv1 = _ConvBlock(64, 32)
 
         self.final = nn.Conv2d(32, 1, 1)
-        self.loss_fn = nn.BCEWithLogitsLoss()
+
+        # BCEWithLogitsLoss с pos_weight
+        pw = torch.tensor([self.hparams.pos_weight])
+        self.register_buffer("pos_weight_buf", pw)
+        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight_buf)
+
+        # F1-метрика (binary)
         self.f1 = torchmetrics.F1Score(task="binary")
 
-    # forward
     def forward(self, x):
         c1 = self.down1(x)
         c2 = self.down2(self.pool(c1))
@@ -57,10 +62,13 @@ class MiniUNet(pl.LightningModule):
         imgs, masks = batch
         logits = self(imgs)
         loss = self.loss_fn(logits, masks)
-        preds = torch.sigmoid(logits) > 0.5
+
+        preds = (torch.sigmoid(logits) > self.hparams.threshold).int()
         f1 = self.f1(preds, masks.int())
+
         self.log(f"{stage}_loss", loss, prog_bar=True)
         self.log(f"{stage}_f1", f1, prog_bar=True)
+
         return loss
 
     def training_step(self, batch, _):

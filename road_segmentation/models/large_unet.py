@@ -63,7 +63,7 @@ class _Up(nn.Module):
 class LargeUNet(pl.LightningModule):
     """Глубокий U‑Net (~16М параметров) в стиле MiniUNet."""
 
-    def __init__(self, lr: float = 1e-3):
+    def __init__(self, lr: float, threshold: float, pos_weight: float):
         super().__init__()
         self.save_hyperparameters()
 
@@ -91,10 +91,7 @@ class LargeUNet(pl.LightningModule):
             nn.Conv2d(32, 1, 1),
         )
 
-        # loss / metric
-        # self.loss_fn = nn.BCEWithLogitsLoss()
-        # self.f1 = torchmetrics.F1Score(task="binary")
-        pos_w = torch.tensor([16.0])
+        pos_w = torch.tensor([pos_weight], dtype=torch.float32)
         self.register_buffer("pos_weight", pos_w)
         self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
 
@@ -121,7 +118,7 @@ class LargeUNet(pl.LightningModule):
         imgs, masks = batch  # masks: (B,1,H,W)
         logits = self(imgs)
         loss = self.loss_fn(logits, masks)
-        preds = (torch.sigmoid(logits) > 0.20).int()
+        preds = (torch.sigmoid(logits) > self.hparams.threshold).int()
 
         f1 = self.f1(preds, masks.int())
         self.log(f"{stage}_loss", loss, prog_bar=True)
