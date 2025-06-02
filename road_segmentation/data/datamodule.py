@@ -15,18 +15,12 @@ _DATA_ROOT = Path(__file__).resolve().parents[2] / "data" / "dataset"
 
 
 def _ensure_data() -> None:
-    """
-    Make sure the training images are present locally.
-    If they’re missing, fetch them from the DVC remote.
-    """
     images_dir = _DATA_ROOT / "training" / "images"
-
-    if not _DATA_ROOT.exists():
-        with Repo(str(_DATA_ROOT)) as repo:
-            # Equivalent to: `dvc pull -q training/images`
+    if not images_dir.exists():
+        with Repo(str(Path(__file__).resolve().parents[2])) as repo:
             repo.pull(
                 targets=[str(images_dir.relative_to(_DATA_ROOT))],
-                quiet=True,  # mirrors the CLI’s `-q`
+                quiet=True,
             )
 
 
