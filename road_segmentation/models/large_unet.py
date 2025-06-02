@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchmetrics
+from torchvision.transforms import functional as TF
 
 # --------------------------- building blocks --------------------------- #
 
@@ -51,7 +52,7 @@ class _Up(nn.Module):
         x = self.up(x)
         # --- spatial alignment (center crop skip) ---
         if x.shape[2] != skip.shape[2] or x.shape[3] != skip.shape[3]:
-            skip = F.center_crop(skip, (x.shape[2], x.shape[3]))
+            skip = TF.center_crop(skip, [x.shape[2], x.shape[3]])
         x = torch.cat([x, skip], dim=1)
         return self.conv(x)
 
