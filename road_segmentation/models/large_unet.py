@@ -96,6 +96,7 @@ class LargeUNet(pl.LightningModule):
         self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
 
         self.f1 = torchmetrics.F1Score(task="binary")
+        self.accuracy = torchmetrics.Accuracy(task="binary")
 
         # ----------------------- forward ----------------------- #
 
@@ -121,8 +122,11 @@ class LargeUNet(pl.LightningModule):
         preds = (torch.sigmoid(logits) > self.hparams.threshold).int()
 
         f1 = self.f1(preds, masks.int())
+        acc = self.accuracy(preds, masks.int())
+
         self.log(f"{stage}_loss", loss, prog_bar=True)
         self.log(f"{stage}_f1", f1, prog_bar=True)
+        self.log(f"{stage}_acc", acc, prog_bar=True)
         return loss
 
     def training_step(self, batch, batch_idx):
