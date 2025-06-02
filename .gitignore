@@ -1,3 +1,11 @@
+# Project-spesific ignoge files
+.idea
+.DS_Store
+outputs
+plots
+mlruns
+mlflow.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -192,5 +200,3 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
-
-.idea

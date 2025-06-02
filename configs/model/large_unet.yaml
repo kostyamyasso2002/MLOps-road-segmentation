@@ -1,0 +1,2 @@
+_target_: road_segmentation.models.large_unet.LargeUNet
+lr: 0.001

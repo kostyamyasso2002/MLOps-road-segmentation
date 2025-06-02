@@ -1,0 +1,2 @@
+_target_: road_segmentation.models.mini_unet.MiniUNet
+lr: 0.001

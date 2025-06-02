@@ -1,0 +1,5 @@
+[core]
+    remote = r2
+['remote "r2"']
+    url = s3://mlops-road-segmentation
+    endpointurl = https://298bd67fcbb37695a74ad2402f1ca3f6.r2.cloudflarestorage.com
