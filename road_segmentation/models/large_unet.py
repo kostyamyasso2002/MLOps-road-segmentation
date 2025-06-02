@@ -92,10 +92,16 @@ class LargeUNet(pl.LightningModule):
         )
 
         # loss / metric
-        self.loss_fn = nn.BCEWithLogitsLoss()
+        # self.loss_fn = nn.BCEWithLogitsLoss()
+        # self.f1 = torchmetrics.F1Score(task="binary")
+        pos_w = torch.tensor([16.0])
+        self.register_buffer("pos_weight", pos_w)
+        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
+
         self.f1 = torchmetrics.F1Score(task="binary")
 
-    # ----------------------- forward ----------------------- #
+        # ----------------------- forward ----------------------- #
+
     def forward(self, x):
         s0 = self.stem(x)  # 32, 400×400
         s1 = self.down1(s0)  # 64, 200×200
@@ -115,7 +121,8 @@ class LargeUNet(pl.LightningModule):
         imgs, masks = batch  # masks: (B,1,H,W)
         logits = self(imgs)
         loss = self.loss_fn(logits, masks)
-        preds = (torch.sigmoid(logits) > 0.5).int()
+        preds = (torch.sigmoid(logits) > 0.20).int()
+
         f1 = self.f1(preds, masks.int())
         self.log(f"{stage}_loss", loss, prog_bar=True)
         self.log(f"{stage}_f1", f1, prog_bar=True)
