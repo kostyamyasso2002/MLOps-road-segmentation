@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - datamodule: road_data
-  - model: mini_unet
+  - model: large_unet
   - mlflow_logger: mlflow
   - plots_logger: csv
   - callback: plot_metrics
@@ -9,6 +9,6 @@ defaults:
 trainer:
   accelerator: auto
   devices: 1
-  max_epochs: 1
+  max_epochs: 400
   log_every_n_steps: 5
   fast_dev_run: false
