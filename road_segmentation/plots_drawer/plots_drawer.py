@@ -6,26 +6,12 @@ from pytorch_lightning.callbacks import Callback
 
 
 class PlotMetricsCallback(Callback):
-    """
-    В конце тренировки достаёт из MLflow историю метрик:
-      - train_loss
-      - val_loss
-      - val_f1
-    и сохраняет два графика:
-      1) train_loss и val_loss на одном графике
-      2) val_f1 на отдельном графике
-    в локальную папку (по умолчанию "./plots").
-    """
-
     def __init__(self, out_dir):
         super().__init__()
         self.out_dir = Path(out_dir)
         os.makedirs(self.out_dir, exist_ok=True)
 
     def on_train_end(self, trainer, pl_module):
-        print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-        # 1. Убедимся, что logger — это MLFlowLogger
-        #    (если вы используете другой type logger, этот код нужно адаптировать)
         logger = trainer.logger
         try:
             run_id = logger.run_id
@@ -51,8 +37,7 @@ class PlotMetricsCallback(Callback):
 
         fig1, ax1 = plt.subplots()
         ax1.plot([m.value for m in train_loss_history], label="train_loss")
-        # ax1.plot([m.value for m in val_loss_history], label="val_loss")
-        ax1.set_xlabel("Step / 5")
+        ax1.set_xlabel("Step")
         ax1.set_ylabel("Loss")
         ax1.set_title("Train Loss")
         ax1.legend()
