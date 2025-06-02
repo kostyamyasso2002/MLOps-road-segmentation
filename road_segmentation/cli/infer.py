@@ -79,7 +79,7 @@ def postprocess_and_save_mask(probs: torch.Tensor, threshold: float, out_path: P
     сохраняет PNG в out_path. Ожидается probs.shape == (1, 1, H, W).
     """
     mask_bin = (probs > threshold).to(torch.uint8) * 255  # (1,1,H,W)
-    mask = mask_bin.squeeze(0)  # (H, W)
+    mask = mask_bin.squeeze(0).cpu()  # (H, W)
     out_path.parent.mkdir(parents=True, exist_ok=True)
     write_png(mask, str(out_path))
 
