@@ -10,3 +10,6 @@ trainer:
   max_epochs: 1
   log_every_n_steps: 5
   fast_dev_run: false
+
+plots:
+  out_dir: ./plots

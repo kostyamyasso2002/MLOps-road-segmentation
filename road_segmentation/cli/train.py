@@ -22,7 +22,7 @@ def main(cfg: DictConfig):
         verbose=True,
     )
 
-    draw_plots_cb = PlotMetricsCallback()
+    draw_plots_cb = PlotMetricsCallback(out_dir=cfg.plots.out_dir)
 
     print(logger.run_id)
     print(logger.experiment.tracking_uri)

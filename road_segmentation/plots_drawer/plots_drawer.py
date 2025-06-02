@@ -17,7 +17,7 @@ class PlotMetricsCallback(Callback):
     в локальную папку (по умолчанию "./plots").
     """
 
-    def __init__(self, out_dir: str = "plots_uuu"):
+    def __init__(self, out_dir):
         super().__init__()
         self.out_dir = Path(out_dir)
         os.makedirs(self.out_dir, exist_ok=True)
