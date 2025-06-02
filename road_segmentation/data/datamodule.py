@@ -20,7 +20,6 @@ def _ensure_data() -> None:
         with Repo(str(Path(__file__).resolve().parents[2])) as repo:
             repo.pull(
                 targets=[str(images_dir.relative_to(_DATA_ROOT))],
-                quiet=True,
             )
 
 
