@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import hydra
 import pytorch_lightning as pl
 from omegaconf import DictConfig
@@ -15,7 +17,6 @@ def main(cfg: DictConfig):
 
     ckpt_cb = ModelCheckpoint(
         dirpath=hydra.core.hydra_config.HydraConfig.get().runtime.output_dir,
-        filename="final",
         save_top_k=0,
         save_last=True,
         verbose=True,
@@ -29,6 +30,13 @@ def main(cfg: DictConfig):
         **cfg.trainer,
     )
     trainer.fit(model, dm)
+
+    root_dir = Path().cwd()
+    ckpt_path = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir) / "last.ckpt"
+    # create a symlink to the final checkpoint in the root directory
+    if (root_dir / "outputs" / "last.ckpt").exists():
+        (root_dir / "outputs" / "last.ckpt").unlink()
+    (root_dir / "outputs" / "last.ckpt").symlink_to(ckpt_path)
 
 
 if __name__ == "__main__":
