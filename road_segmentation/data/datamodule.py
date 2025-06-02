@@ -21,8 +21,7 @@ def _ensure_data() -> None:
     """
     images_dir = _DATA_ROOT / "training" / "images"
 
-    if not images_dir.exists():
-        # `_DATA_ROOT` should be the root of the local DVC-enabled repo
+    if not _DATA_ROOT.exists():
         with Repo(str(_DATA_ROOT)) as repo:
             # Equivalent to: `dvc pull -q training/images`
             repo.pull(
