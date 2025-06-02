@@ -61,7 +61,7 @@ class _Up(nn.Module):
 
 
 class LargeUNet(pl.LightningModule):
-    """Глубокий U‑Net (~16 М параметров) в стиле MiniUNet."""
+    """Глубокий U‑Net (~16М параметров) в стиле MiniUNet."""
 
     def __init__(self, lr: float = 1e-3):
         super().__init__()
@@ -93,7 +93,7 @@ class LargeUNet(pl.LightningModule):
 
         # loss / metric
         self.loss_fn = nn.BCEWithLogitsLoss()
-        self.f1 = torchmetrics.classification.BinaryF1Score()
+        self.f1 = torchmetrics.F1Score(task="binary")
 
     # ----------------------- forward ----------------------- #
     def forward(self, x):
@@ -115,14 +115,10 @@ class LargeUNet(pl.LightningModule):
         imgs, masks = batch  # masks: (B,1,H,W)
         logits = self(imgs)
         loss = self.loss_fn(logits, masks)
-        preds = torch.sigmoid(logits)
-        self.log(f"{stage}_loss", loss, prog_bar=True, on_epoch=True)
-        (
-            self.f1.update(preds, masks.int())
-            if stage == "train"
-            else self.f1.update(preds, masks.int())
-        )
-        self.log(f"{stage}_f1", self.f1, prog_bar=True, on_epoch=True)
+        preds = (torch.sigmoid(logits) > 0.5).int()
+        f1 = self.f1(preds, masks.int())
+        self.log(f"{stage}_loss", loss, prog_bar=True)
+        self.log(f"{stage}_f1", f1, prog_bar=True)
         return loss
 
     def training_step(self, batch, batch_idx):
