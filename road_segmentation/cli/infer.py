@@ -1,115 +1,71 @@
 import argparse
 from pathlib import Path
 
-import pytorch_lightning as pl
+import numpy as np
+import onnxruntime as ort
 import torch
 from torchvision.io import read_image, write_png
-from torchvision.transforms import functional as TF
-
-from road_segmentation.models.large_unet import LargeUNet
-
-# Импортируем оба класса заранее
-from road_segmentation.models.mini_unet import MiniUNet
-
-MODEL_REGISTRY = {
-    "mini_unet": MiniUNet,
-    "large_unet": LargeUNet,
-}
 
 
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Inference for a trained Lightning segmentation model"
+        description="Inference with ONNX model (including preprocessing and postprocessing)"
     )
     parser.add_argument(
-        "--model",
-        type=str,
-        required=True,
-        choices=list(MODEL_REGISTRY.keys()),
-        help="Выбор модели: 'mini_unet' или 'large_unet'",
-    )
-    parser.add_argument(
-        "--ckpt",
+        "--onnx",
         type=Path,
         required=True,
-        help="Путь до чекпойнта Lightning (например, final.ckpt или last.ckpt)",
+        help="Path to the ONNX model file (e.g. model_full.onnx)",
     )
     parser.add_argument(
         "--image",
         type=Path,
         required=True,
-        help="Путь до входного изображения (PNG, JPG и т.д.)",
+        help="Path to the input image (PNG, JPG, etc.)",
     )
     parser.add_argument(
         "--out",
         type=Path,
         required=True,
-        help="Куда сохранить выходную маску (PNG).",
+        help="Path where to save the output mask (PNG).",
     )
     return parser.parse_args()
 
 
-def load_model(model_name: str, ckpt_path: Path, device: torch.device) -> pl.LightningModule:
-    """
-    Загружает LightningModule (MiniUNet или LargeUNet) из чекпойнта и переводит его на device.
-    Ожидается, что threshold сохранён в hparams.
-    """
-    cls = MODEL_REGISTRY[model_name]
-    model = cls.load_from_checkpoint(str(ckpt_path), map_location=device)
-    model.to(device)
-    model.eval()
-    return model
+def run_inference(onnx_path: Path, image_path: Path, out_path: Path) -> None:
+    # 1) Создаём ONNXRuntime сессию
+    sess = ort.InferenceSession(str(onnx_path))
 
+    # 2) Находим имена входа и выхода (обычно "raw_image" и "binary_mask")
+    input_name = sess.get_inputs()[0].name
+    output_name = sess.get_outputs()[0].name
 
-def load_and_preprocess_image(image_path: Path, target_size=(400, 400)) -> torch.Tensor:
-    """
-    Считывает изображение, переводит в float-тензор [0,1], ресайзит до target_size.
-    Возвращает тензор формы (1, C, H, W).
-    """
-    img = read_image(str(image_path))  # uint8, (C, H, W), знач. 0–255
-    img = img.to(torch.float32) / 255.0  # float32, 0–1
-    img = TF.resize(img, target_size)  # (C, H, W)
-    img = img.unsqueeze(0)  # (1, C, H, W)
-    return img
+    # 3) Считываем исходное изображение в формате uint8, shape=(3, H, W)
+    img_t = read_image(str(image_path))  # torch.uint8, (3, H, W)
+    img_np = img_t.numpy()  # numpy.uint8, (3, H, W)
 
+    # 4) Добавляем batch-ось → (1, 3, H, W)
+    img_batch = np.expand_dims(img_np, axis=0)
 
-def postprocess_and_save_mask(probs: torch.Tensor, threshold: float, out_path: Path) -> None:
-    """
-    Бинаризует тензор вероятностей по threshold, умножает на 255 → uint8,
-    сохраняет PNG в out_path. Ожидается probs.shape == (1, 1, H, W).
-    """
-    mask_bin = (probs > threshold).to(torch.uint8) * 255  # (1,1,H,W)
-    mask = mask_bin.squeeze(0).cpu()  # (H, W)
+    # 5) Передаём в ONNXRuntime → получаем numpy-маску shape=(1, 1, H_mask, W_mask)
+    ort_outs = sess.run([output_name], {input_name: img_batch})
+    mask_np = ort_outs[0]  # numpy.uint8, (1, 1, H_mask, W_mask)
+
+    # 6) Убираем batch и канал → shape=(H_mask, W_mask)
+    mask_2d = mask_np.squeeze(0).squeeze(0)  # numpy.uint8, (H_mask, W_mask)
+
+    # 7) Приводим к torch.Tensor и добавляем канал: (1, H_mask, W_mask)
+    mask_tensor = torch.from_numpy(mask_2d).unsqueeze(0)  # torch.uint8, (1, H_mask, W_mask)
+
+    # 8) Сохраняем PNG
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    write_png(mask, str(out_path))
-
-
-def run_inference(model_name: str, ckpt: Path, image: Path, out: Path) -> None:
-    # 1) выбираем устройство
-    device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
-    # 2) загружаем модель (MiniUNet или LargeUNet) из чекпойнта
-    model = load_model(model_name, ckpt, device)
-
-    # 3) доставем threshold из hparams
-    threshold = float(model.hparams.threshold)
-
-    # 4) загружаем и предобрабатываем изображение
-    img_tensor = load_and_preprocess_image(image).to(device)
-
-    # 5) прямой проход → логиты → вероятности
-    with torch.no_grad():
-        logits = model(img_tensor)  # (1,1,H,W)
-        probs = torch.sigmoid(logits)  # (1,1,H,W)
-
-    # 6) бинаризация + сохранение маски
-    postprocess_and_save_mask(probs, threshold, out)
-    print(f"Saved binary mask to: {out}  (threshold = {threshold})")
+    write_png(mask_tensor, str(out_path))
+    print(f"Saved binary mask to: {out_path}")
 
 
 def main():
     args = parse_args()
-    run_inference(args.model, args.ckpt, args.image, args.out)
+    run_inference(args.onnx, args.image, args.out)
 
 
 if __name__ == "__main__":

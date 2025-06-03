@@ -13,3 +13,6 @@ trainer:
 
 plots:
   out_dir: ./plots
+
+production:
+  export_onnx: true
