@@ -1,35 +1,9 @@
-import argparse
 from pathlib import Path
 
 import numpy as np
 import onnxruntime as ort
 import torch
 from torchvision.io import read_image, write_png
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Inference with ONNX model (including preprocessing and postprocessing)"
-    )
-    parser.add_argument(
-        "--onnx",
-        type=Path,
-        required=True,
-        help="Path to the ONNX model file (e.g. model_full.onnx)",
-    )
-    parser.add_argument(
-        "--image",
-        type=Path,
-        required=True,
-        help="Path to the input image (PNG, JPG, etc.)",
-    )
-    parser.add_argument(
-        "--out",
-        type=Path,
-        required=True,
-        help="Path where to save the output mask (PNG).",
-    )
-    return parser.parse_args()
 
 
 def run_inference(onnx_path: Path, image_path: Path, out_path: Path) -> None:
@@ -61,12 +35,3 @@ def run_inference(onnx_path: Path, image_path: Path, out_path: Path) -> None:
     out_path.parent.mkdir(parents=True, exist_ok=True)
     write_png(mask_tensor, str(out_path))
     print(f"Saved binary mask to: {out_path}")
-
-
-def main():
-    args = parse_args()
-    run_inference(args.onnx, args.image, args.out)
-
-
-if __name__ == "__main__":
-    main()
