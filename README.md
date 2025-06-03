@@ -132,3 +132,13 @@
     ```bash
     poetry run python -m road_segmentation.commands triton_server --model-path outputs/model_full.onnx
     ```
+
+   Для запроса к Triton серверу можно использовать следующую команду:
+
+    ```bash
+    poetry run python -m road_segmentation.commands triton_client --image <path_to_image> --out <path_to_output_image> [--triton_url <triton_server_url>] [--model-name <model_name>]
+    ```
+   Например, запрос на инференс первого изображения из тестового набора:
+    ```bash
+   poetry run python -m road_segmentation.commands triton_client --image data/dataset/test_set_images/test_1/test_1.png --out out_image.png
+   ```
