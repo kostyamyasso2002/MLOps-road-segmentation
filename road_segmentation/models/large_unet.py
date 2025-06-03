@@ -3,7 +3,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchmetrics
-from torchvision.transforms import functional as TF
 
 # --------------------------- building blocks --------------------------- #
 
@@ -51,8 +50,18 @@ class _Up(nn.Module):
     def forward(self, x: torch.Tensor, skip: torch.Tensor):
         x = self.up(x)
         # --- spatial alignment (center crop skip) ---
-        if x.shape[2] != skip.shape[2] or x.shape[3] != skip.shape[3]:
-            skip = TF.center_crop(skip, [x.shape[2], x.shape[3]])
+        # Получаем размеры
+        _, _, h_skip, w_skip = skip.shape
+        _, _, h_x, w_x = x.shape
+
+        # Вычисляем смещение для «центрированного» обрезания
+        dh = (h_skip - h_x) // 2
+        dw = (w_skip - w_x) // 2
+
+        # Динамически обрезаем skip до (h_x, w_x)
+        skip = skip[:, :, dh : dh + h_x, dw : dw + w_x]
+
+        # Затем конкатенируем
         x = torch.cat([x, skip], dim=1)
         return self.conv(x)
 
