@@ -6,7 +6,7 @@ import pytorch_lightning as pl
 import torch
 import torchvision
 from dvc.repo import Repo
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, RandomSampler
 from torchvision.io import read_image
 from torchvision.transforms import functional as F
 from torchvision.transforms import v2 as T
@@ -23,12 +23,11 @@ def _ensure_data() -> None:
 
 class _SegDataset(Dataset):
     """
-    Повторяет rand_data() из run.py:
     • берёт 4 случайных кадра и маски
     • случайные флипы (p=0.5)
     • собирает мозаику 2×2 (800×800)
     • случайный crop 400×400
-    • y → (H,W)   без канала, как в run.py
+    • y → (H,W) без канала (как в run.py)
     """
 
     def __init__(
@@ -100,7 +99,18 @@ class _SegDataset(Dataset):
 
 
 class SegDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size: int = 4, num_workers: int = 2, val_split: float = 0.1):
+    def __init__(
+        self,
+        batch_size: int = 4,
+        num_workers: int = 2,
+        val_split: float = 0.1,
+        steps_per_epoch: Optional[int] = None,
+    ):
+        """
+        steps_per_epoch: если задано, то train_dataloader будет возвращать ровно
+                         steps_per_epoch батчей, sampling с replacement=True.
+                         Если None, то длина эпохи == len(train_dataset)//batch_size.
+        """
         super().__init__()
         self.save_hyperparameters()
         _ensure_data()
@@ -118,12 +128,32 @@ class SegDataModule(pl.LightningDataModule):
         self.val_ds = _SegDataset(imgs[split:], masks[split:], augment=False)
 
     def train_dataloader(self):
-        return DataLoader(
-            self.train_ds,
-            batch_size=self.hparams.batch_size,
-            shuffle=True,
-            num_workers=self.hparams.num_workers,
-        )
+        batch_size = self.hparams.batch_size
+        num_workers = self.hparams.num_workers
+        steps = self.hparams.steps_per_epoch
+
+        if steps is not None:
+            # sampler с replacement=True, чтобы получить ровно steps*batch_size сэмплов
+            sampler = RandomSampler(
+                self.train_ds,
+                replacement=True,
+                num_samples=steps * batch_size,
+            )
+            return DataLoader(
+                self.train_ds,
+                batch_size=batch_size,
+                sampler=sampler,
+                num_workers=num_workers,
+                drop_last=True,  # на всякий случай
+            )
+        else:
+            # обычный DataLoader без replacement
+            return DataLoader(
+                self.train_ds,
+                batch_size=batch_size,
+                shuffle=True,
+                num_workers=num_workers,
+            )
 
     def val_dataloader(self):
         return DataLoader(
