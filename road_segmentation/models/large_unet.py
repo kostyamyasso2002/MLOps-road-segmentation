@@ -82,6 +82,8 @@ class LargeUNet(pl.LightningModule):
         self.down2 = _Down(64, 128)  # 100×100
         self.down3 = _Down(128, 256)  # 50×50
 
+        self.pool = nn.MaxPool2d(2)
+
         # bottleneck
         self.bottleneck = nn.Sequential(
             _ConvBlock(256, 512),
@@ -114,7 +116,8 @@ class LargeUNet(pl.LightningModule):
         s1 = self.down1(s0)  # 64, 200×200
         s2 = self.down2(s1)  # 128,100×100
         s3 = self.down3(s2)  # 256,50×50
-        b = self.bottleneck(s3)  # 512,25×25
+        # b = self.bottleneck(s3)  # 512,25×25
+        b = self.bottleneck(self.pool(s3))  # 512,25×25
 
         d2 = self.up3(b, s3)  # 256,50×50
         d1 = self.up2(d2, s2)  # 128,100×100
