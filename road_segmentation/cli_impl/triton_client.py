@@ -1,75 +1,10 @@
-#!/usr/bin/env python3
-"""
-triton_client.py
-
-Пример Python-клиента для Triton Inference Server, который:
-  • Считывает PNG-изображение (3×H×W, uint8)
-  • Отправляет его на сервер в модель (ONNX или TensorRT), ожидающую тот же формат
-  • Получает маску (1×H×W, uint8) в ответ
-  • Сохраняет маску в PNG
-
-Использование:
-    python triton_client.py \
-        --url localhost:8000 \
-        --model-name my_model \
-        --input-name raw_image \
-        --output-name binary_mask \
-        --image-path /path/to/input.png \
-        --output-path /path/to/output_mask.png
-"""
-
-import argparse
 import json
-import sys
 from pathlib import Path
 
 import numpy as np
 import requests
 import torch
 from torchvision.io import read_image, write_png
-
-
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Triton client: отправка изображения на инференс и получение маски"
-    )
-    parser.add_argument(
-        "--url",
-        type=str,
-        default="localhost:8000",
-        help="Адрес Triton Server (host:port), по умолчанию localhost:8000",
-    )
-    parser.add_argument(
-        "--model-name",
-        type=str,
-        required=True,
-        help="Имя модели в Triton (имя папки в model_repository)",
-    )
-    parser.add_argument(
-        "--input-name",
-        type=str,
-        default="raw_image",
-        help="Имя входного тензора в модели (по config.pbtxt)",
-    )
-    parser.add_argument(
-        "--output-name",
-        type=str,
-        default="binary_mask",
-        help="Имя выходного тензора в модели (по config.pbtxt)",
-    )
-    parser.add_argument(
-        "--image-path",
-        type=Path,
-        required=True,
-        help="Путь к входному изображению (PNG, 3×H×W, uint8)",
-    )
-    parser.add_argument(
-        "--output-path",
-        type=Path,
-        required=True,
-        help="Куда сохранить выходную маску (PNG, 1×H×W, uint8)",
-    )
-    return parser.parse_args()
 
 
 def load_image(image_path: Path) -> np.ndarray:
@@ -116,7 +51,7 @@ def parse_infer_response(response: dict, output_name: str) -> np.ndarray:
     raise RuntimeError(f"Output tensor '{output_name}' not found in response")
 
 
-def run_inference(
+def run_triton_triton_request(
     triton_url: str,
     model_name: str,
     input_name: str,
@@ -149,26 +84,3 @@ def run_inference(
     output_path.parent.mkdir(parents=True, exist_ok=True)
     write_png(mask_tensor, str(output_path))
     print(f"Saved binary mask to: {output_path}")
-
-
-def main():
-    args = parse_args()
-
-    # Проверяем, что файл изображения существует
-    if not args.image_path.is_file():
-        print(f"ERROR: Input image '{args.image_path}' not found.", file=sys.stderr)
-        sys.exit(1)
-
-    # Выполняем инференс
-    run_inference(
-        triton_url=args.url,
-        model_name=args.model_name,
-        input_name=args.input_name,
-        output_name=args.output_name,
-        image_path=args.image_path,
-        output_path=args.output_path,
-    )
-
-
-if __name__ == "__main__":
-    main()
