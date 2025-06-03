@@ -1,4 +1,6 @@
 import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 
@@ -16,11 +18,15 @@ def run_triton_server(
     target_location = (
         Path(__file__).resolve().parents[2]
         / "triton_repo"
-        / "roads_segmentation"
+        / "roads-segmentation"
         / "1"
         / "model.onnx"
     )
     # copy the model from model_path to target_location
+    if not model_path.exists():
+        raise FileNotFoundError(f"Model path {model_path} does not exist.")
+    if not model_path.is_file():
+        raise ValueError(f"Model path {model_path} is not a file.")
     shutil.copy(model_path, target_location)
     print(f"Copied model from {model_path} to {target_location}")
 
@@ -50,3 +56,13 @@ def run_triton_server(
         "tritonserver",
         "--model-repository=/models",
     ]
+
+    print("Running Triton Inference Server with command:")
+    print(" ".join(cmd))
+    # Запускаем команду
+    try:
+        # Запускаем процесс и передаём вывод прямо в stdout/stderr текущего процесса
+        subprocess.run(cmd, check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Ошибка при выполнении docker run: {e}", file=sys.stderr)
+        sys.exit(e.returncode)
