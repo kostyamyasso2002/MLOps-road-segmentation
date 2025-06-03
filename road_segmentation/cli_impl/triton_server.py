@@ -50,7 +50,7 @@ def run_triton_server(
         f"{metrics_port}:8002",
         # Монтируем локальную папку с моделями внутрь контейнера
         "-v",
-        f"{str(target_location.resolve().parents[3])}:/models",
+        f"{str(target_location.resolve().parents[2])}:/models",
         # Образ и команда внутри контейнера
         "nvcr.io/nvidia/tritonserver:24.04-py3",
         "tritonserver",
