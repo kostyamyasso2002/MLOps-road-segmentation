@@ -22,8 +22,11 @@ class PlotMetricsCallback(Callback):
                 "MLFlowLogger, пропускаем построение графиков."
             )
             return
-
-        run_name = client.get_run(run_id).data.tags.get("mlflow.runName")
+        try:
+            run_name = client.get_run(run_id).data.tags.get("mlflow.runName")
+        except AttributeError:
+            # Используется fast_dev_run или другой режим, где run_name не задан
+            return
         self.out_dir = self.out_dir / run_name
         self.out_dir.mkdir(exist_ok=True)
 
