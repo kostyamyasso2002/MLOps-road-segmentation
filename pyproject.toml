@@ -1,9 +1,9 @@
 [project]
 name = "road-segmentation"
 version = "0.1.0"
-description = ""
+description = "Project for road segmentation on satellite images"
 authors = [
-    {name = "Your Name",email = "you@example.com"}
+    {name = "Konstantin Myasnikov",email = "miasnikov.km@phystech.edu"}
 ]
 readme = "README.md"
 requires-python = ">=3.11"
@@ -26,6 +26,10 @@ dependencies = [
     "fire (>=0.7.0,<0.8.0)",
 ]
 
+[project.optional-dependencies]
+gpu = [
+    "tensorrt (>=8.6,<9.0)"
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

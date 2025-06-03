@@ -4944,6 +4944,21 @@ files = [
 widechars = ["wcwidth"]
 
 [[package]]
+name = "tensorrt"
+version = "8.6.1.post1"
+description = "A high performance deep learning inference library"
+optional = true
+python-versions = ">=3.6"
+groups = ["main"]
+markers = "extra == \"gpu\""
+files = [
+    {file = "tensorrt-8.6.1.post1.tar.gz", hash = "sha256:0ca64da500480a2d204c18d7c6791ec462c163ae4fa1db574b8c211da1116ea2"},
+]
+
+[package.extras]
+numpy = ["numpy"]
+
+[[package]]
 name = "termcolor"
 version = "3.1.0"
 description = "ANSI color formatting for output in terminal"
@@ -5596,7 +5611,10 @@ enabler = ["pytest-enabler (>=2.2)"]
 test = ["big-O", "importlib_resources ; python_version < \"3.9\"", "jaraco.functools", "jaraco.itertools", "jaraco.test", "more_itertools", "pytest (>=6,!=8.1.*)", "pytest-ignore-flaky"]
 type = ["pytest-mypy"]
 
+[extras]
+gpu = ["tensorrt"]
+
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "96c1f1778b72845ddd8f318a115cfa35cebf2d355505ee8b71d959840889028b"
+content-hash = "48105c4c7cc14e58b89fd28c96c4cc066cd09ab7cacf0423893c109e8d599303"
