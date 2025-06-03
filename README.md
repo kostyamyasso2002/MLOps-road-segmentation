@@ -124,3 +124,11 @@
     poetry run python -m road_segmentation.commands infer --onnx outputs/model_full.onnx --image data/dataset/test_set_images/test_1/test_1.png --out output_image.png
     ```
 2. **С помощью Triton сервера:**
+   Запуск Triton сервера осуществляется с помощью команды:
+   ```bash
+   poetry run python -m road_segmentation.commands triton_server --model-path <path_to_model> [--container-name <container_name>] [--http-port <http_port>] [--grpc-port <grpc_port>] [--metrics-port <metrics_port>] [--use-gpus <true/false>]
+   ```
+    Например, для запуска Triton сервера с последней моделью:
+    ```bash
+    poetry run python -m road_segmentation.commands triton_server --model-path outputs/model_full.onnx
+    ```

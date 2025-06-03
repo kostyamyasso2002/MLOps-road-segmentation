@@ -43,7 +43,7 @@ class Commands:
         image: str,
         out: str,
         triton_url: str = "localhost:8000",
-        model_name: str = "roads_segmentation",
+        model_name: str = "roads-segmentation",
     ):
         """Run Triton client to send an image for inference and receive a mask."""
         run_triton_triton_request(
