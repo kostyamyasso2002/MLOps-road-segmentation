@@ -59,9 +59,9 @@ class LargeUNet(pl.LightningModule):
 
         # encoder
         self.stem = _ConvBlock(3, 32)
-        self.down1 = _Down(32, 64)  # 200×200
-        self.down2 = _Down(64, 128)  # 100×100
-        self.down3 = _Down(128, 256)  # 50×50
+        self.down1 = _Down(32, 64)
+        self.down2 = _Down(64, 128)
+        self.down3 = _Down(128, 256)
 
         self.pool = nn.MaxPool2d(2)
 
