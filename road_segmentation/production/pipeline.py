@@ -36,11 +36,11 @@ class FullPipeline(nn.Module):
         for param in self.unet.parameters():
             param.requires_grad_(False)
 
-    def forward(self, x_uint8: torch.Tensor) -> torch.Tensor:
-        x = x_uint8.to(dtype=torch.float32) / constants.PIXEL_MAX
+    def forward(self, input_uint8: torch.Tensor) -> torch.Tensor:
+        input = input_uint8.to(dtype=torch.float32) / constants.PIXEL_MAX
 
         x_resized = F.interpolate(
-            x, size=constants.PIPELINE_PICTURE_SIZE, mode="bilinear", align_corners=False
+            input, size=constants.PIPELINE_PICTURE_SIZE, mode="bilinear", align_corners=False
         )
 
         logits = self.unet(x_resized)

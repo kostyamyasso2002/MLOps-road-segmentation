@@ -76,9 +76,6 @@ def train_main(cfg: DictConfig):
 
     draw_plots_cb = PlotMetricsCallback(out_dir=cfg.plots.out_dir)
 
-    print(logger.run_id)
-    print(logger.experiment.tracking_uri)
-
     callbacks = [ckpt_cb, draw_plots_cb]
     trainer = pl.Trainer(
         logger=logger,
@@ -88,11 +85,9 @@ def train_main(cfg: DictConfig):
     )
     trainer.fit(model, dm)
 
-    # save model parameters
     root_dir = Path().cwd()
     hydra_output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
     ckpt_path = hydra_output_dir / constants.CKPT_FILE_NAME
-    # create a symlink to the final checkpoint in the root directory
 
     (root_dir / constants.HYDRA_OUTPUT_DIR / constants.CKPT_FILE_NAME).unlink(missing_ok=True)
     (root_dir / constants.HYDRA_OUTPUT_DIR / constants.CKPT_FILE_NAME).symlink_to(ckpt_path)

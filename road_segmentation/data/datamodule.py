@@ -55,36 +55,34 @@ class _SegDataset(Dataset):
 
     def _mosaic4(self) -> Tuple[torch.Tensor, torch.Tensor]:
         idxs = random.sample(range(len(self.imgs)), 4)
-        xs, ys = [], []
-        for i in idxs:
-            x = self.tf_img(read_image(str(self.imgs[i])))
-            y = self.tf_mask(read_image(str(self.masks[i]))[:1])  # 1-канал
-            x, y = self._maybe_flip(x, y)
-            xs.append(x)
-            ys.append(y)
+        image_list, mask_list = [], []
+        for i_pos in idxs:
+            image = self.tf_img(read_image(str(self.imgs[i_pos])))
+            mask = self.tf_mask(read_image(str(self.masks[i_pos]))[:1])  # 1-канал
+            image, mask = self._maybe_flip(image, mask)
+            image_list.append(image)
+            mask_list.append(mask)
 
-        x = torchvision.utils.make_grid(xs, nrow=2, padding=0)
-        y = torchvision.utils.make_grid(ys, nrow=2, padding=0)[:1]
+        image = torchvision.utils.make_grid(image_list, nrow=2, padding=0)
+        mask = torchvision.utils.make_grid(mask_list, nrow=2, padding=0)[:1]
 
-        # случайный crop 400×400
-        i = random.randint(0, x.shape[1] - self.size)
-        j = random.randint(0, x.shape[2] - self.size)
-        x = F.crop(x, i, j, self.size, self.size)
-        y = F.crop(y, i, j, self.size, self.size)
-        y = (y > 0.5).float()
-        assert torch.all((y < 1e-6) | (y > 0.999)), "Mask contains non-binary values"
-        return x, y
+        i_pos = random.randint(0, image.shape[1] - self.size)
+        j_pos = random.randint(0, image.shape[2] - self.size)
+        image = F.crop(image, i_pos, j_pos, self.size, self.size)
+        mask = F.crop(mask, i_pos, j_pos, self.size, self.size)
+        mask = (mask > 0.5).float()
+        assert torch.all((mask < 1e-6) | (mask > 0.999)), "Mask contains non-binary values"
+        return image, mask
 
-    # ---------- main ----------
     def __getitem__(self, idx: int) -> Tuple[torch.Tensor, torch.Tensor]:
         if self.augment:
             return self._mosaic4()
 
-        x = self.tf_img(read_image(str(self.imgs[idx])))
-        y = self.tf_mask(read_image(str(self.masks[idx]))[:1])  # (H,W)
-        y = (y > 0.5).float()
-        assert torch.all((y < 1e-6) | (y > 0.999)), "Mask contains non-binary values"
-        return x, y
+        image = self.tf_img(read_image(str(self.imgs[idx])))
+        mask = self.tf_mask(read_image(str(self.masks[idx]))[:1])  # (H,W)
+        mask = (mask > 0.5).float()
+        assert torch.all((mask < 1e-6) | (mask > 0.999)), "Mask contains non-binary values"
+        return image, mask
 
 
 class SegDataModule(pl.LightningDataModule):
@@ -99,7 +97,6 @@ class SegDataModule(pl.LightningDataModule):
         self.save_hyperparameters()
         _ensure_data()
 
-    # Lightning hooks
     def setup(self, stage: Optional[str] = None):
         train_dir = _DATA_ROOT / constants.TRAIN_DIR
         imgs = sorted((train_dir / constants.IMAGES_DIR).glob("*.png"))

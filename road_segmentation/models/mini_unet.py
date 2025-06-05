@@ -16,8 +16,8 @@ class _ConvBlock(nn.Module):
             nn.ReLU(inplace=True),
         )
 
-    def forward(self, x):
-        return self.conv(x)
+    def forward(self, input):
+        return self.conv(input)
 
 
 class MiniUNet(pl.LightningModule):
@@ -45,16 +45,16 @@ class MiniUNet(pl.LightningModule):
         self.f1 = torchmetrics.F1Score(task="binary")
         self.accuracy = torchmetrics.Accuracy(task="binary")
 
-    def forward(self, x):
-        c1 = self.down1(x)
+    def forward(self, input):
+        c1 = self.down1(input)
         c2 = self.down2(self.pool(c1))
         c3 = self.down3(self.pool(c2))
 
         u2 = self.up2(c3)
-        x = self.conv2(torch.cat([u2, c2], dim=1))
-        u1 = self.up1(x)
-        x = self.conv1(torch.cat([u1, c1], dim=1))
-        return self.final(x)
+        input = self.conv2(torch.cat([u2, c2], dim=1))
+        u1 = self.up1(input)
+        input = self.conv1(torch.cat([u1, c1], dim=1))
+        return self.final(input)
 
     # Lightning steps
     def _shared_step(self, batch, stage: str):

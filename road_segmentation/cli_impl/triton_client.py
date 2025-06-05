@@ -43,7 +43,6 @@ def run_triton_triton_request(
     headers = {"Content-Type": "application/json"}
     infer_url = f"http://{triton_url}/v2/models/{model_name}/infer"
 
-    # 3) Отправляем запрос
     resp = requests.post(infer_url, headers=headers, data=json.dumps(payload))
     if resp.status_code != 200:
         raise RuntimeError(f"HTTP {resp.status_code} — {resp.text}")

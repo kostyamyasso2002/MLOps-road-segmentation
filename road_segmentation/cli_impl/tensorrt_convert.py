@@ -13,7 +13,7 @@ def tensorrt_convert(onnx_path: Path, trt_path: Path, trt_docker_version) -> Non
         print(f"Ошибка: ONNX-файл не найден по пути: {real_onnx_path}", file=sys.stderr)
         sys.exit(1)
 
-    trt_dir: Path = real_trt_path.parent
+    trt_dir = real_trt_path.parent
     if trt_dir and not trt_dir.exists():
         try:
             trt_dir.mkdir(parents=True, exist_ok=True)
@@ -21,9 +21,9 @@ def tensorrt_convert(onnx_path: Path, trt_path: Path, trt_docker_version) -> Non
             print(f"Не удалось создать директорию: {trt_dir}\n{e}", file=sys.stderr)
             sys.exit(1)
 
-    onnx_dir: Path = real_onnx_path.parent
-    onnx_fname: str = real_onnx_path.name
-    trt_fname: str = real_trt_path.name
+    onnx_dir = real_onnx_path.parent
+    onnx_fname = real_onnx_path.name
+    trt_fname = real_trt_path.name
 
     docker_cmd = [
         "docker",
