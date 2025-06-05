@@ -2,7 +2,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from grandalf.utils.linalg import constants
+from road_segmentation.constants import constants
 
 
 def tensorrt_convert(onnx_path: Path, trt_path: Path, trt_docker_version) -> None:
