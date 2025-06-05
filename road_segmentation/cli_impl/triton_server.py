@@ -38,6 +38,7 @@ def run_triton_server(
         raise FileNotFoundError(f"Model path {model_path} does not exist.")
     if not model_path.is_file():
         raise ValueError(f"Model path {model_path} is not a file.")
+    target_location.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy(model_path, target_location)
 
     pbtxt_target_location = target_location.resolve().parents[1] / constants.PBTXT_CONFIG_NAME

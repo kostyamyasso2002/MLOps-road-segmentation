@@ -10,16 +10,11 @@ def tensorrt_convert(onnx_path: Path, trt_path: Path, trt_docker_version) -> Non
     real_trt_path = trt_path.resolve()
 
     if not real_onnx_path.is_file():
-        print(f"Ошибка: ONNX-файл не найден по пути: {real_onnx_path}", file=sys.stderr)
+        print(f"Error: ONNX-file not found: {real_onnx_path}")
         sys.exit(1)
 
     trt_dir = real_trt_path.parent
-    if trt_dir and not trt_dir.exists():
-        try:
-            trt_dir.mkdir(parents=True, exist_ok=True)
-        except Exception as e:
-            print(f"Не удалось создать директорию: {trt_dir}\n{e}", file=sys.stderr)
-            sys.exit(1)
+    trt_dir.mkdir(parents=True, exist_ok=True)
 
     onnx_dir = real_onnx_path.parent
     onnx_fname = real_onnx_path.name
