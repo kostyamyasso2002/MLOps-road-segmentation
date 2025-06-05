@@ -29,7 +29,7 @@ def parse_infer_response(response: dict, output_name: str) -> np.ndarray:
     raise RuntimeError(f"Output tensor '{output_name}' not found in response")
 
 
-def run_triton_triton_request(
+def run_triton_request(
     triton_url: str,
     model_name: str,
     input_name: str,

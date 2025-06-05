@@ -6,7 +6,7 @@ import fire
 from road_segmentation.cli_impl.infer import run_inference
 from road_segmentation.cli_impl.tensorrt_convert import tensorrt_convert
 from road_segmentation.cli_impl.train import train_main
-from road_segmentation.cli_impl.triton_client import run_triton_triton_request
+from road_segmentation.cli_impl.triton_client import run_triton_request
 from road_segmentation.cli_impl.triton_server import ModelType, run_triton_server
 from road_segmentation.constants import constants
 
@@ -48,7 +48,7 @@ class Commands:
         model_name: str = "roads-segmentation",
     ):
         """Run Triton client to send an image for inference and receive a mask."""
-        run_triton_triton_request(
+        run_triton_request(
             triton_url=triton_url,
             model_name=model_name,
             image_path=Path(image),
