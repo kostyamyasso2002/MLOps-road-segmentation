@@ -112,6 +112,15 @@
 
 Также в папке `outputs` создаются символические ссылки на последнюю обученную модель и ONNX модель, чтобы их было проще использовать в дальнейшем. В дальнейшем для инференса будет использоваться ONNX формат модели.
 
+Для конвертации модели в tensorrt формат используется команда (для этой команды требуется установленный docker, первый запуск может занять некоторое время из-за загрузки образа):
+```bash
+poetry run python -m road_segmentation.commands tensorrt_convert --onnx <path_to_onnx_model> --trt <output_path>
+```
+Например, для конвертации последней модели в tensorrt формат:
+```bash
+poetry run python -m road_segmentation.commands tensorrt_convert --onnx outputs/model_full.onnx --trt model_converted.trt
+```
+
 ### Inference
 Инференс модели может быть осуществлён двумя способами:
 1. **С помощью скрипта одноразового запуска:**
@@ -124,17 +133,20 @@
     poetry run python -m road_segmentation.commands infer --onnx outputs/model_full.onnx --image data/dataset/test_set_images/test_1/test_1.png --out output_image.png
     ```
 2. **С помощью Triton сервера:**
-   Запуск Triton сервера осуществляется с помощью команды:
+   Запуск Triton сервера осуществляется с помощью команды (тут также используется Docker, поэтому первый запуск может занять некоторое время из-за загрузки образа). Поддерживается как onnx модель, так и tensorrt модель. Для запуска Triton сервера используйте следующую команду:
    ```bash
-   poetry run python -m road_segmentation.commands triton_server --model-path <path_to_model> [--container-name <container_name>] [--http-port <http_port>] [--grpc-port <grpc_port>] [--metrics-port <metrics_port>] [--use-gpus <true/false>]
+   poetry run python -m road_segmentation.commands triton_server --model_type <onnx or trt> --model-path <path_to_model> [--container-name <container_name>] [--http-port <http_port>] [--grpc-port <grpc_port>] [--metrics-port <metrics_port>] [--use-gpus <true/false>]
    ```
     Например, для запуска Triton сервера с последней моделью:
     ```bash
-    poetry run python -m road_segmentation.commands triton_server --model-path outputs/model_full.onnx
+    poetry run python -m road_segmentation.commands triton_server --model_type onnx --model-path outputs/model_full.onnx
+    ```
+   или в случае tensorrt модели:
+    ```bash
+    poetry run python -m road_segmentation.commands triton_server --model_type trt --model-path model_converted.trt
     ```
 
-   Для запроса к Triton серверу можно использовать следующую команду:
-
+   Для запроса к Triton серверу можно использовать следующую команду (в другой вкладке):
     ```bash
     poetry run python -m road_segmentation.commands triton_client --image <path_to_image> --out <path_to_output_image> [--triton_url <triton_server_url>] [--model-name <model_name>]
     ```
