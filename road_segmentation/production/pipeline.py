@@ -80,7 +80,9 @@ class FullPipeline(nn.Module):
 
         # --- Шаг 4: сигмоида + бинаризация по threshold ---
         probs = torch.sigmoid(logits)  # float32 ∈ [0..1], shape=(B,1,400,400)
-        binary_mask = (probs > self.threshold).to(torch.uint8) * 255
+        binary_mask = (probs > self.threshold).to(
+            torch.float32
+        )  # получится тензор float32 с 0.0 и 1.0
         # теперь binary_mask.shape == (B,1,400,400), dtype=torch.uint8, values {0,255}
 
         return binary_mask
