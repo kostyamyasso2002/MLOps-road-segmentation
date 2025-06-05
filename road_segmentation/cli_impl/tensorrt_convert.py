@@ -38,6 +38,9 @@ def tensorrt_convert(onnx_path: Path, trt_path: Path) -> None:
         "trtexec",
         f"--onnx=/workspace/input/{onnx_fname}",
         f"--saveEngine=/workspace/output/{trt_fname}",
+        "--minShapes=raw_image:1x3x1x1",
+        "--optShapes=raw_image:1x3x400x400",
+        "--maxShapes=raw_image:1x3x1024x1024",
     ]
 
     print("Запускаем Docker-контейнер для конвертации ONNX → TRT:")

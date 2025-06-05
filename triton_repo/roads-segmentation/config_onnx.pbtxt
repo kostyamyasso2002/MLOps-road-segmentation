@@ -14,7 +14,7 @@ input [
 output [
   {
     name: "binary_mask"
-    data_type: TYPE_UINT8       # или TYPE_FP32, смотря что реально внутри вашего TensorRT-движка
+    data_type: TYPE_FP32       # или TYPE_FP32, смотря что реально внутри вашего TensorRT-движка
     dims: [-1, -1, -1]
   }
 ]

@@ -27,8 +27,6 @@ class Commands:
         model_path: str,
         container_name: str = "triton_server",
         http_port: int = 8000,
-        grpc_port: int = 8001,
-        metrics_port: int = 8002,
         use_gpus: bool = True,
     ):
         run_triton_server(
@@ -36,8 +34,6 @@ class Commands:
             model_path=Path(model_path),
             container_name=container_name,
             http_port=http_port,
-            grpc_port=grpc_port,
-            metrics_port=metrics_port,
             use_gpus=use_gpus,
         )
 

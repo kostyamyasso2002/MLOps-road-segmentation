@@ -9,8 +9,6 @@ def run_triton_server(
     model_path: Path,
     container_name: str,
     http_port: int,
-    grpc_port: int,
-    metrics_port: int,
     use_gpus: bool,
 ) -> None:
     """
@@ -64,11 +62,6 @@ def run_triton_server(
     cmd += [
         "-p",
         f"{http_port}:8000",
-        "-p",
-        f"{grpc_port}:8001",
-        "-p",
-        f"{metrics_port}:8002",
-        # Монтируем локальную папку с моделями внутрь контейнера
         "-v",
         f"{str(Path(__file__).resolve().parents[2] / 'triton_repo')}:/models",
         # Образ и команда внутри контейнера
