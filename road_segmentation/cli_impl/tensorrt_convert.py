@@ -1,34 +1,9 @@
-import argparse
 import subprocess
 import sys
 from pathlib import Path
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Конвертация ONNX-модели в TensorRT-движок через Docker"
-    )
-    parser.add_argument(
-        "--onnx-path",
-        required=True,
-        type=Path,
-        help="Путь к исходному ONNX-файлу (например: /home/user/model.onnx)",
-    )
-    parser.add_argument(
-        "--trt-path",
-        required=True,
-        type=Path,
-        help="Путь, куда сохранить сгенерированный .plan (например: /home/user/model.plan)",
-    )
-    return parser.parse_args()
-
-
-def main():
-    args = parse_args()
-
-    onnx_path: Path = args.onnx_path.resolve()
-    trt_path: Path = args.trt_path.resolve()
-
+def tensorrt_convert(onnx_path: Path, trt_path: Path) -> None:
     # Проверяем, что исходный ONNX-файл существует
     if not onnx_path.is_file():
         print(f"Ошибка: ONNX-файл не найден по пути: {onnx_path}", file=sys.stderr)
@@ -74,7 +49,3 @@ def main():
     except subprocess.CalledProcessError as e:
         print("\nОшибка при выполнении trtexec внутри Docker:", file=sys.stderr)
         sys.exit(e.returncode)
-
-
-if __name__ == "__main__":
-    main()

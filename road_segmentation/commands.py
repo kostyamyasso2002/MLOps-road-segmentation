@@ -4,6 +4,7 @@ from pathlib import Path
 import fire
 
 from road_segmentation.cli_impl.infer import run_inference
+from road_segmentation.cli_impl.tensorrt_convert import tensorrt_convert
 from road_segmentation.cli_impl.train import train_main
 from road_segmentation.cli_impl.triton_client import run_triton_triton_request
 from road_segmentation.cli_impl.triton_server import run_triton_server
@@ -22,6 +23,7 @@ class Commands:
 
     def triton_server(
         self,
+        model_type: str,
         model_path: str,
         container_name: str = "triton_server",
         http_port: int = 8000,
@@ -30,6 +32,7 @@ class Commands:
         use_gpus: bool = True,
     ):
         run_triton_server(
+            model_type=model_type,
             model_path=Path(model_path),
             container_name=container_name,
             http_port=http_port,
@@ -54,6 +57,10 @@ class Commands:
             input_name="raw_image",
             output_name="binary_mask",
         )
+
+    def tensorrt_convert(self, onnx: str, trt: str):
+        """Convert ONNX model to TensorRT format."""
+        tensorrt_convert(Path(onnx), Path(trt))
 
 
 if __name__ == "__main__":
