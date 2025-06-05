@@ -40,7 +40,7 @@ repos:
 
   # 5) Prettier (форматирование не-Python файлов: JavaScript, JSON, CSS, Markdown и т.д.)
   - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.0.0
+    rev: v2.7.1 # фиксируем Prettier 2.x
     hooks:
       - id: prettier
         args:
@@ -48,5 +48,5 @@ repos:
           - "100"
           - --tab-width
           - "2"
-          - --ignore-unknown # чтобы не ругаться на файлы, для которых нет настроек
+          - --ignore-unknown
         files: \.(js|jsx|json|css|scss|md|yaml|yml|html|ts|tsx)$
