@@ -1,31 +1,42 @@
+import enum
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
+from road_segmentation.constants import constants
+
+
+class ModelType(enum.Enum):
+    ONNX = "onnx"
+    TRT = "trt"
+
 
 def run_triton_server(
-    model_type: str,
+    model_type: ModelType,
     model_path: Path,
     container_name: str,
     http_port: int,
     use_gpus: bool,
+    triton_docker_version: str = "24.04-py3",
 ) -> None:
     """
     Запускает Triton Inference Server с моделью из указанной директории.
     """
-    if model_type != "onnx" and model_type != "trt":
+    if model_type != ModelType.ONNX and model_type != ModelType.TRT:
         raise ValueError("Unsupported model type. Use 'onnx' or 'trt'.")
 
     target_location = (
-        Path(__file__).resolve().parents[2] / "triton_repo" / "roads-segmentation" / "1"
+        Path(__file__).resolve().parents[2]
+        / constants.TRITON_REPO_DIRNAME
+        / constants.TRITON_MODEL_NAME
+        / "1"
     )
-    if model_type == "onnx":
-        target_location /= "model.onnx"
-    elif model_type == "trt":
-        target_location /= "model.plan"
+    if model_type == ModelType.ONNX:
+        target_location /= constants.TRITON_ONNX_MODEL_FILENAME
+    elif model_type == ModelType.TRT:
+        target_location /= constants.TRITON_TRT_MODEL_FILENAME
 
-    # copy the model from model_path to target_location
     if not model_path.exists():
         raise FileNotFoundError(f"Model path {model_path} does not exist.")
     if not model_path.is_file():
@@ -33,14 +44,13 @@ def run_triton_server(
     shutil.copy(model_path, target_location)
     print(f"Copied model from {model_path} to {target_location}")
 
-    pbtxt_target_location = target_location.resolve().parents[1] / "config.pbtxt"
+    pbtxt_target_location = target_location.resolve().parents[1] / constants.PBTXT_CONFIG_NAME
     pbtxt_src_location = (
-        target_location.resolve().parents[1] / "config_onnx.pbtxt"
-        if model_type == "onnx"
-        else target_location.resolve().parents[1] / "config_trt.pbtxt"
+        target_location.resolve().parents[1] / constants.ONNX_PBTXT_CONFIG_NAME
+        if model_type == ModelType.ONNX
+        else target_location.resolve().parents[1] / constants.TRT_PBTXT_CONFIG_NAME
     )
 
-    # copy the config.pbtxt file
     if not pbtxt_src_location.exists():
         raise FileNotFoundError(f"Config file {pbtxt_src_location} does not exist.")
     if not pbtxt_src_location.is_file():
@@ -48,7 +58,6 @@ def run_triton_server(
     shutil.copy(pbtxt_src_location, pbtxt_target_location)
     print(f"Copied config file from {pbtxt_src_location} to {pbtxt_target_location}")
 
-    # Запускаем Triton Inference Server
     cmd = [
         "docker",
         "run",
@@ -58,14 +67,12 @@ def run_triton_server(
     ]
     if use_gpus:
         cmd += ["--gpus", "all"]
-
     cmd += [
         "-p",
         f"{http_port}:8000",
         "-v",
-        f"{str(Path(__file__).resolve().parents[2] / 'triton_repo')}:/models",
-        # Образ и команда внутри контейнера
-        "nvcr.io/nvidia/tritonserver:24.04-py3",
+        f"{str(Path(__file__).resolve().parents[2] / constants.TRITON_REPO_DIRNAME)}:/models",
+        f"nvcr.io/nvidia/tritonserver:{triton_docker_version}",
         "tritonserver",
         "--model-repository=/models",
     ]

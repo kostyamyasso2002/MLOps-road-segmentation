@@ -1,16 +1,25 @@
+# .pre-commit-config.yaml
 repos:
+  # 1) Black (форматирование Python-кода)
   - repo: https://github.com/psf/black
     rev: 24.4.2
     hooks:
       - id: black
-        args: [--line-length=100]
+        args:
+          - --line-length=100
+        language_version: python3
 
+  # 2) isort (сортировка импортов в Python)
   - repo: https://github.com/pycqa/isort
     rev: 6.0.1
     hooks:
       - id: isort
-        args: [--profile=black, --line-length=100]
+        args:
+          - --profile=black
+          - --line-length=100
+        language_version: python3
 
+  # 3) flake8 (статический анализ Python-кода)
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
@@ -18,9 +27,26 @@ repos:
         args:
           - --max-line-length=100
           - --extend-ignore=E203,W503
+        language_version: python3
 
+  # 4) Базовые хуки от pre-commit для всех языков / файлов
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
+      - id: end-of-file-fixer # убирает лишние пустые строки в конце файла
+      - id: trailing-whitespace # убирает пробелы в конце строк
+      - id: check-yaml # проверяет синтаксис YAML (по желанию можно раскомментировать)
+      # - id: check-added-large-files  # проверяет, что вы не добавили слишком большие файлы
+
+  # 5) Prettier (форматирование не-Python файлов: JavaScript, JSON, CSS, Markdown и т.д.)
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.0.0
+    hooks:
+      - id: prettier
+        args:
+          - --print-width
+          - "100"
+          - --tab-width
+          - "2"
+          - --ignore-unknown # чтобы не ругаться на файлы, для которых нет настроек
+        files: \.(js|jsx|json|css|scss|md|yaml|yml|html|ts|tsx)$

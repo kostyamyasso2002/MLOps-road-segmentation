@@ -5,31 +5,26 @@ import onnxruntime as ort
 import torch
 from torchvision.io import read_image, write_png
 
+from road_segmentation.constants import constants
+
 
 def run_inference(onnx_path: Path, image_path: Path, out_path: Path) -> None:
-    # 1) Создаём ONNXRuntime сессию
     sess = ort.InferenceSession(str(onnx_path))
 
-    # 2) Находим имена входа и выхода (обычно "raw_image" и "binary_mask")
-    input_name = sess.get_inputs()[0].name
-    output_name = sess.get_outputs()[0].name
+    input_name = constants.ONNX_INPUT_NAME
+    output_name = constants.ONNX_OUTPUT_NAME
 
-    # 3) Считываем исходное изображение в формате uint8, shape=(3, H, W)
-    img_t = read_image(str(image_path))  # torch.uint8, (3, H, W)
-    img_np = img_t.numpy()  # numpy.uint8, (3, H, W)
+    img_t = read_image(str(image_path))
+    img_np = img_t.numpy()
 
-    # 4) Добавляем batch-ось → (1, 3, H, W)
     img_batch = np.expand_dims(img_np, axis=0)
 
-    # 5) Передаём в ONNXRuntime → получаем numpy-маску shape=(1, 1, H_mask, W_mask)
     ort_outs = sess.run([output_name], {input_name: img_batch})
-    mask_np = ort_outs[0].astype(np.uint8) * 255  # numpy.uint8, (1, 1, H_mask, W_mask)
+    mask_np = ort_outs[0].astype(np.uint8) * constants.PIXEL_MAX
 
-    # 6) Убираем batch и канал → shape=(H_mask, W_mask)
-    mask_2d = mask_np.squeeze(0).squeeze(0)  # numpy.uint8, (H_mask, W_mask)
+    mask_2d = mask_np.squeeze(0).squeeze(0)
 
-    # 7) Приводим к torch.Tensor и добавляем канал: (1, H_mask, W_mask)
-    mask_tensor = torch.from_numpy(mask_2d).unsqueeze(0)  # torch.uint8, (1, H_mask, W_mask)
+    mask_tensor = torch.from_numpy(mask_2d).unsqueeze(0)
 
     # 8) Сохраняем PNG
     out_path.parent.mkdir(parents=True, exist_ok=True)

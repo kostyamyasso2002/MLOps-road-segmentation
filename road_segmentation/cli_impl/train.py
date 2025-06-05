@@ -6,6 +6,7 @@ import torch
 from omegaconf import DictConfig
 from pytorch_lightning.callbacks import ModelCheckpoint
 
+from road_segmentation.constants import constants
 from road_segmentation.plots_drawer.plots_drawer import PlotMetricsCallback
 from road_segmentation.production.pipeline import FullPipeline
 
@@ -14,45 +15,42 @@ def export_to_onnx(cfg: DictConfig, ckpt_path: Path):
     """
     Экспортирует модель вместе с пайплайном препроцессинга и постпроцессинга в ONNX.
     """
-    # Определяем имя модели в зависимости от класса
-    target_cls_name = cfg.model._target_.split(".")[-1]
-    if target_cls_name.lower().startswith("miniunet"):
-        model_name = "mini_unet"
-    elif target_cls_name.lower().startswith("largeunet"):
-        model_name = "large_unet"
+    target_cls_name = cfg.model._target_.split(".")[-2]
+    if target_cls_name in constants.MODEL_NAMES:
+        model_name = target_cls_name
     else:
         raise ValueError(f"Unsupported model class: {target_cls_name}")
 
-    # Создаём FullPipeline, загружаем веса чекпоинта
     pipeline = FullPipeline(model_name=model_name, ckpt_path=ckpt_path)
     pipeline.eval().cpu()
 
-    # Делаем dummy-input uint8 (1, 3, 400, 400)
-    dummy_input = torch.randint(0, 256, (1, 3, 400, 400), dtype=torch.uint8)
+    dummy_input = torch.randint(
+        constants.PIXEL_MIN,
+        constants.PIXEL_MAX + 1,
+        constants.DUMMY_INPUT_ONNX_SHAPE,
+        dtype=torch.uint8,
+    )
 
-    # Путь к папке Hydra-вывода
     hydra_output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
-    onnx_path = hydra_output_dir / "model_full.onnx"
+    onnx_path = hydra_output_dir / constants.ONNX_MODEL_NAME
 
-    # Экспортируем в ONNX
     torch.onnx.export(
-        pipeline,  # FullPipeline с препро/постпро
-        dummy_input,  # пример uint8 входа
-        str(onnx_path),  # куда сохранить ONNX
-        opset_version=13,
-        input_names=["raw_image"],
-        output_names=["binary_mask"],
+        pipeline,
+        dummy_input,
+        str(onnx_path),
+        opset_version=constants.ONNX_OPSET_VERSION,
+        input_names=[constants.ONNX_INPUT_NAME],
+        output_names=[constants.ONNX_OUTPUT_NAME],
         dynamic_axes={
-            "raw_image": {0: "batch", 2: "height", 3: "width"},
-            "binary_mask": {0: "batch", 2: "height", 3: "width"},
+            constants.ONNX_INPUT_NAME: {0: "batch", 2: "height", 3: "width"},
+            constants.ONNX_OUTPUT_NAME: {0: "batch", 2: "height", 3: "width"},
         },
     )
     print(f"ONNX модель сохранена в: {onnx_path}")
 
-    # Создаём символическую ссылку в папке outputs/
-    root_dir = Path().cwd()
-    (root_dir / "outputs" / "model_full.onnx").unlink(missing_ok=True)
-    (root_dir / "outputs" / "model_full.onnx").symlink_to(onnx_path)
+    root_dir = Path(__file__).resolve().parents[2]
+    (root_dir / constants.HYDRA_OUTPUT_DIR / constants.ONNX_MODEL_NAME).unlink(missing_ok=True)
+    (root_dir / constants.HYDRA_OUTPUT_DIR / constants.ONNX_MODEL_NAME).symlink_to(onnx_path)
 
 
 @hydra.main(
@@ -82,7 +80,7 @@ def train_main(cfg: DictConfig):
     trainer = pl.Trainer(
         logger=logger,
         callbacks=callbacks,
-        default_root_dir="outputs",
+        default_root_dir=constants.HYDRA_OUTPUT_DIR,
         **cfg.trainer,
     )
     trainer.fit(model, dm)
@@ -90,11 +88,11 @@ def train_main(cfg: DictConfig):
     # save model parameters
     root_dir = Path().cwd()
     hydra_output_dir = Path(hydra.core.hydra_config.HydraConfig.get().runtime.output_dir)
-    ckpt_path = hydra_output_dir / "last.ckpt"
+    ckpt_path = hydra_output_dir / constants.CKPT_FILE_NAME
     # create a symlink to the final checkpoint in the root directory
 
-    (root_dir / "outputs" / "last.ckpt").unlink(missing_ok=True)
-    (root_dir / "outputs" / "last.ckpt").symlink_to(ckpt_path)
+    (root_dir / constants.HYDRA_OUTPUT_DIR / constants.CKPT_FILE_NAME).unlink(missing_ok=True)
+    (root_dir / constants.HYDRA_OUTPUT_DIR / constants.CKPT_FILE_NAME).symlink_to(ckpt_path)
 
     if cfg.production.export_onnx:
         export_to_onnx(cfg, ckpt_path)
