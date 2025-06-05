@@ -16,8 +16,8 @@ class _ConvBlock(nn.Module):
             nn.ReLU(inplace=True),
         )
 
-    def forward(self, input):
-        return self.conv(input)
+    def forward(self, inp):
+        return self.conv(inp)
 
 
 class MiniUNet(pl.LightningModule):

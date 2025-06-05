@@ -17,8 +17,8 @@ class _ConvBlock(nn.Module):
             nn.ReLU(inplace=True),
         )
 
-    def forward(self, input):
-        return self.net(input)
+    def forward(self, inp):
+        return self.net(inp)
 
 
 class _Down(nn.Module):
@@ -27,9 +27,9 @@ class _Down(nn.Module):
         self.pool = nn.MaxPool2d(2)
         self.conv = _ConvBlock(in_ch, out_ch)
 
-    def forward(self, input):
-        input = self.pool(input)
-        return self.conv(input)
+    def forward(self, inp):
+        inp = self.pool(inp)
+        return self.conv(inp)
 
 
 class _Up(nn.Module):
@@ -38,18 +38,18 @@ class _Up(nn.Module):
         self.up = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=2, stride=2)
         self.conv = _ConvBlock(out_ch * 2, out_ch)
 
-    def forward(self, input: torch.Tensor, skip: torch.Tensor):
-        input = self.up(input)
+    def forward(self, inp: torch.Tensor, skip: torch.Tensor):
+        inp = self.up(inp)
         _, _, h_skip, w_skip = skip.shape
-        _, _, h_x, w_x = input.shape
+        _, _, h_x, w_x = inp.shape
 
         dh = (h_skip - h_x) // 2
         dw = (w_skip - w_x) // 2
 
         skip = skip[:, :, dh : dh + h_x, dw : dw + w_x]
 
-        input = torch.cat([input, skip], dim=1)
-        return self.conv(input)
+        inp = torch.cat([inp, skip], dim=1)
+        return self.conv(inp)
 
 
 class LargeUNet(pl.LightningModule):
@@ -90,8 +90,8 @@ class LargeUNet(pl.LightningModule):
         self.f1 = torchmetrics.F1Score(task="binary")
         self.accuracy = torchmetrics.Accuracy(task="binary")
 
-    def forward(self, input):
-        s0 = self.stem(input)
+    def forward(self, inp):
+        s0 = self.stem(inp)
         s1 = self.down1(s0)
         s2 = self.down2(s1)
         s3 = self.down3(s2)
@@ -101,7 +101,7 @@ class LargeUNet(pl.LightningModule):
         d1 = self.up2(d2, s2)
         d0 = self.up1(d1, s1)
         out = self.head(d0)
-        out = F.interpolate(out, size=input.shape[2:], mode="bilinear", align_corners=False)
+        out = F.interpolate(out, size=inp.shape[2:], mode="bilinear", align_corners=False)
         return out
 
     def _shared_step(self, batch, stage: str):
