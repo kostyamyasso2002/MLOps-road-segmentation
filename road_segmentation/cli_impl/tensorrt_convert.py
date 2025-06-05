@@ -4,13 +4,17 @@ from pathlib import Path
 
 
 def tensorrt_convert(onnx_path: Path, trt_path: Path) -> None:
+    # Получаем «истинный» путь (без символических ссылок)
+    real_onnx_path = onnx_path.resolve()
+    real_trt_path = trt_path.resolve()
+
     # Проверяем, что исходный ONNX-файл существует
-    if not onnx_path.is_file():
-        print(f"Ошибка: ONNX-файл не найден по пути: {onnx_path}", file=sys.stderr)
+    if not real_onnx_path.is_file():
+        print(f"Ошибка: ONNX-файл не найден по пути: {real_onnx_path}", file=sys.stderr)
         sys.exit(1)
 
     # Убедимся, что директория для вывода .plan существует (если нет — создадим)
-    trt_dir: Path = trt_path.parent
+    trt_dir: Path = real_trt_path.parent
     if trt_dir and not trt_dir.exists():
         try:
             trt_dir.mkdir(parents=True, exist_ok=True)
@@ -18,10 +22,10 @@ def tensorrt_convert(onnx_path: Path, trt_path: Path) -> None:
             print(f"Не удалось создать директорию для вывода: {trt_dir}\n{e}", file=sys.stderr)
             sys.exit(1)
 
-    # Извлекаем имя файла и родительскую директорию для монтирования в Docker
-    onnx_dir: Path = onnx_path.parent
-    onnx_fname: str = onnx_path.name
-    trt_fname: str = trt_path.name
+    # Извлекаем имя файла и родительскую директорию (после resolve())
+    onnx_dir: Path = real_onnx_path.parent
+    onnx_fname: str = real_onnx_path.name
+    trt_fname: str = real_trt_path.name
 
     # Монтируем onnx_dir как /workspace/input, а trt_dir как /workspace/output
     docker_cmd = [
@@ -48,7 +52,7 @@ def tensorrt_convert(onnx_path: Path, trt_path: Path) -> None:
 
     try:
         subprocess.run(docker_cmd, check=True)
-        print(f"\nУспешно создан TensorRT-движок: {trt_path}")
+        print(f"\nУспешно создан TensorRT-движок: {real_trt_path}")
     except subprocess.CalledProcessError as e:
         print("\nОшибка при выполнении trtexec внутри Docker:", file=sys.stderr)
         sys.exit(e.returncode)
