@@ -12,6 +12,11 @@ from road_segmentation.production.pipeline import FullPipeline
 
 
 def export_to_onnx(cfg: DictConfig, ckpt_path: Path):
+    if not isinstance(cfg.model._target_, str) or len(cfg.model._target_.split(".")) < 2:
+        raise ValueError(
+            f"Invalid model target '{cfg.model._target_}'."
+            f" Expected a string with at least two components separated by dots."
+        )
     target_cls_name = cfg.model._target_.split(".")[-2]
     if target_cls_name in constants.MODEL_NAMES:
         model_name = target_cls_name
