@@ -166,7 +166,7 @@ poetry run python -m road_segmentation.commands tensorrt_convert --onnx outputs/
    poetry run python -m road_segmentation.commands triton_server --model_type <onnx or trt> --model-path <path_to_model> [--container-name <container_name>] [--http-port <http_port>] [--use-gpus <true/false>]
    ```
 
-   Например, для запуска Triton сервера с последней моделью (в случае, если порт 8000 уже занят, можно указать другой порт):
+   Например, для запуска Triton сервера с последней onnx моделью (в случае, если порт 8000 уже занят, можно указать другой порт):
 
    ```bash
    poetry run python -m road_segmentation.commands triton_server --model_type onnx --model-path outputs/model_full.onnx

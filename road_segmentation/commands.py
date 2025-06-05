@@ -32,7 +32,7 @@ class Commands:
     ):
         """Run Triton Inference Server with the specified model."""
         run_triton_server(
-            model_type=model_type,
+            model_type=ModelType(model_type),
             model_path=Path(model_path),
             container_name=container_name,
             http_port=http_port,
