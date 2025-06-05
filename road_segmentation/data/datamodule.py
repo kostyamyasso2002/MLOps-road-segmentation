@@ -11,25 +11,19 @@ from torchvision.io import read_image
 from torchvision.transforms import functional as F
 from torchvision.transforms import v2 as T
 
-_DATA_ROOT = Path(__file__).resolve().parents[2] / "data" / "dataset"
+from road_segmentation.constants import constants
+
+_DATA_ROOT = Path(__file__).resolve().parents[2] / constants.DATA_DIR / constants.DATASET_DIR
 
 
 def _ensure_data() -> None:
-    images_dir = _DATA_ROOT / "training" / "images"
+    images_dir = _DATA_ROOT / constants.TRAIN_DIR / constants.IMAGES_DIR
     if not images_dir.exists():
         with Repo(str(Path(__file__).resolve().parents[2])) as repo:
             repo.pull()
 
 
 class _SegDataset(Dataset):
-    """
-    • берёт 4 случайных кадра и маски
-    • случайные флипы (p=0.5)
-    • собирает мозаику 2×2 (800×800)
-    • случайный crop 400×400
-    • y → (H,W) без канала (как в run.py)
-    """
-
     def __init__(
         self,
         img_paths: List[Path],
@@ -41,18 +35,15 @@ class _SegDataset(Dataset):
         self.size = size
         self.augment = augment
 
-        # базовые преобразования: только в float32 [0,1]
         self.tf_img = T.ToDtype(torch.float32, scale=True)
         self.tf_mask = T.ToDtype(torch.float32, scale=True)
 
-        # флипы «как у автора»
         self.hflip = T.RandomHorizontalFlip(p=1.0)
         self.vflip = T.RandomVerticalFlip(p=1.0)
 
     def __len__(self) -> int:
         return len(self.imgs)
 
-    # ---------- helpers ----------
     def _maybe_flip(
         self, img: torch.Tensor, msk: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -72,16 +63,15 @@ class _SegDataset(Dataset):
             xs.append(x)
             ys.append(y)
 
-        # 2×2 мозаика, padding=0
-        x = torchvision.utils.make_grid(xs, nrow=2, padding=0)  # (3, 800, 800)
-        y = torchvision.utils.make_grid(ys, nrow=2, padding=0)[:1]  # (1, 800, 800)
+        x = torchvision.utils.make_grid(xs, nrow=2, padding=0)
+        y = torchvision.utils.make_grid(ys, nrow=2, padding=0)[:1]
 
         # случайный crop 400×400
         i = random.randint(0, x.shape[1] - self.size)
         j = random.randint(0, x.shape[2] - self.size)
-        x = F.crop(x, i, j, self.size, self.size)  # (3, 400, 400)
+        x = F.crop(x, i, j, self.size, self.size)
         y = F.crop(y, i, j, self.size, self.size)
-        y = (y > 0.5).float()  # бинаризация
+        y = (y > 0.5).float()
         assert torch.all((y < 1e-6) | (y > 0.999)), "Mask contains non-binary values"
         return x, y
 
@@ -90,7 +80,6 @@ class _SegDataset(Dataset):
         if self.augment:
             return self._mosaic4()
 
-        # *** валидация без аугментаций ***
         x = self.tf_img(read_image(str(self.imgs[idx])))
         y = self.tf_mask(read_image(str(self.masks[idx]))[:1])  # (H,W)
         y = (y > 0.5).float()
@@ -106,24 +95,18 @@ class SegDataModule(pl.LightningDataModule):
         val_split: float = 0.1,
         steps_per_epoch: Optional[int] = None,
     ):
-        """
-        steps_per_epoch: если задано, то train_dataloader будет возвращать ровно
-                         steps_per_epoch батчей, sampling с replacement=True.
-                         Если None, то длина эпохи == len(train_dataset)//batch_size.
-        """
         super().__init__()
         self.save_hyperparameters()
         _ensure_data()
 
     # Lightning hooks
     def setup(self, stage: Optional[str] = None):
-        train_dir = _DATA_ROOT / "training"
-        imgs = sorted((train_dir / "images").glob("*.png"))
-        masks = sorted((train_dir / "groundtruth").glob("*.png"))
+        train_dir = _DATA_ROOT / constants.TRAIN_DIR
+        imgs = sorted((train_dir / constants.IMAGES_DIR).glob("*.png"))
+        masks = sorted((train_dir / constants.GROUND_TRUTH_DIR).glob("*.png"))
 
         split = int((1 - self.hparams.val_split) * len(imgs))
 
-        # train — с мозаикой; val — без
         self.train_ds = _SegDataset(imgs[:split], masks[:split], augment=True)
         self.val_ds = _SegDataset(imgs[split:], masks[split:], augment=False)
 
@@ -133,7 +116,6 @@ class SegDataModule(pl.LightningDataModule):
         steps = self.hparams.steps_per_epoch
 
         if steps is not None:
-            # sampler с replacement=True, чтобы получить ровно steps*batch_size сэмплов
             sampler = RandomSampler(
                 self.train_ds,
                 replacement=True,
@@ -147,7 +129,6 @@ class SegDataModule(pl.LightningDataModule):
                 drop_last=True,  # на всякий случай
             )
         else:
-            # обычный DataLoader без replacement
             return DataLoader(
                 self.train_ds,
                 batch_size=batch_size,

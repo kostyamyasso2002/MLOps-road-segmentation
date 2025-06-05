@@ -4,12 +4,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchmetrics
 
-# --------------------------- building blocks --------------------------- #
-
 
 class _ConvBlock(nn.Module):
-    """(Conv ‑ BN ‑ ReLU) ×2"""
-
     def __init__(self, in_ch: int, out_ch: int):
         super().__init__()
         self.net = nn.Sequential(
@@ -26,8 +22,6 @@ class _ConvBlock(nn.Module):
 
 
 class _Down(nn.Module):
-    """Downscale with MaxPool2d then a ConvBlock"""
-
     def __init__(self, in_ch: int, out_ch: int):
         super().__init__()
         self.pool = nn.MaxPool2d(2)
@@ -39,29 +33,21 @@ class _Down(nn.Module):
 
 
 class _Up(nn.Module):
-    """Upscale, concat skip, then ConvBlock. Handles crop mis‑match."""
-
     def __init__(self, in_ch: int, out_ch: int):
         super().__init__()
         self.up = nn.ConvTranspose2d(in_ch, out_ch, kernel_size=2, stride=2)
-        # concat -> out_ch*2 channels
         self.conv = _ConvBlock(out_ch * 2, out_ch)
 
     def forward(self, x: torch.Tensor, skip: torch.Tensor):
         x = self.up(x)
-        # --- spatial alignment (center crop skip) ---
-        # Получаем размеры
         _, _, h_skip, w_skip = skip.shape
         _, _, h_x, w_x = x.shape
 
-        # Вычисляем смещение для «центрированного» обрезания
         dh = (h_skip - h_x) // 2
         dw = (w_skip - w_x) // 2
 
-        # Динамически обрезаем skip до (h_x, w_x)
         skip = skip[:, :, dh : dh + h_x, dw : dw + w_x]
 
-        # Затем конкатенируем
         x = torch.cat([x, skip], dim=1)
         return self.conv(x)
 
@@ -70,8 +56,6 @@ class _Up(nn.Module):
 
 
 class LargeUNet(pl.LightningModule):
-    """Глубокий U‑Net (~16М параметров) в стиле MiniUNet."""
-
     def __init__(self, lr: float, threshold: float, pos_weight: float):
         super().__init__()
         self.save_hyperparameters()
@@ -88,7 +72,7 @@ class LargeUNet(pl.LightningModule):
         self.bottleneck = nn.Sequential(
             _ConvBlock(256, 512),
             _ConvBlock(512, 512),
-        )  # 25×25
+        )
 
         # decoder
         self.up3 = _Up(512, 256)  # 50×50, skip from down3
@@ -112,23 +96,21 @@ class LargeUNet(pl.LightningModule):
         # ----------------------- forward ----------------------- #
 
     def forward(self, x):
-        s0 = self.stem(x)  # 32, 400×400
-        s1 = self.down1(s0)  # 64, 200×200
-        s2 = self.down2(s1)  # 128,100×100
-        s3 = self.down3(s2)  # 256,50×50
-        # b = self.bottleneck(s3)  # 512,25×25
-        b = self.bottleneck(self.pool(s3))  # 512,25×25
+        s0 = self.stem(x)
+        s1 = self.down1(s0)
+        s2 = self.down2(s1)
+        s3 = self.down3(s2)
+        b = self.bottleneck(self.pool(s3))
 
-        d2 = self.up3(b, s3)  # 256,50×50
-        d1 = self.up2(d2, s2)  # 128,100×100
-        d0 = self.up1(d1, s1)  # 64, 200×200
-        out = self.head(d0)  # 1, 200×200
+        d2 = self.up3(b, s3)
+        d1 = self.up2(d2, s2)
+        d0 = self.up1(d1, s1)
+        out = self.head(d0)
         out = F.interpolate(out, size=x.shape[2:], mode="bilinear", align_corners=False)
         return out
 
-    # ----------------------- steps ----------------------- #
     def _shared_step(self, batch, stage: str):
-        imgs, masks = batch  # masks: (B,1,H,W)
+        imgs, masks = batch
         logits = self(imgs)
         loss = self.loss_fn(logits, masks)
         preds = (torch.sigmoid(logits) > self.hparams.threshold).int()
@@ -147,6 +129,5 @@ class LargeUNet(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         self._shared_step(batch, "val")
 
-    # ----------------------- optim ----------------------- #
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)

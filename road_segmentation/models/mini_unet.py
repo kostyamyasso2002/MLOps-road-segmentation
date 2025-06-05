@@ -38,12 +38,10 @@ class MiniUNet(pl.LightningModule):
 
         self.final = nn.Conv2d(32, 1, 1)
 
-        # BCEWithLogitsLoss с pos_weight
         pw = torch.tensor([self.hparams.pos_weight])
         self.register_buffer("pos_weight_buf", pw)
         self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight_buf)
 
-        # F1-метрика (binary)
         self.f1 = torchmetrics.F1Score(task="binary")
         self.accuracy = torchmetrics.Accuracy(task="binary")
 

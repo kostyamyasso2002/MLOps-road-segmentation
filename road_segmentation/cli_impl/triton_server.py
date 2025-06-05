@@ -42,7 +42,6 @@ def run_triton_server(
     if not model_path.is_file():
         raise ValueError(f"Model path {model_path} is not a file.")
     shutil.copy(model_path, target_location)
-    print(f"Copied model from {model_path} to {target_location}")
 
     pbtxt_target_location = target_location.resolve().parents[1] / constants.PBTXT_CONFIG_NAME
     pbtxt_src_location = (
@@ -56,7 +55,6 @@ def run_triton_server(
     if not pbtxt_src_location.is_file():
         raise ValueError(f"Config file {pbtxt_src_location} is not a file.")
     shutil.copy(pbtxt_src_location, pbtxt_target_location)
-    print(f"Copied config file from {pbtxt_src_location} to {pbtxt_target_location}")
 
     cmd = [
         "docker",
@@ -79,9 +77,7 @@ def run_triton_server(
 
     print("Running Triton Inference Server with command:")
     print(" ".join(cmd))
-    # Запускаем команду
     try:
-        # Запускаем процесс и передаём вывод прямо в stdout/stderr текущего процесса
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as e:
         print(f"Ошибка при выполнении docker run: {e}", file=sys.stderr)

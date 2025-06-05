@@ -18,7 +18,7 @@ def tensorrt_convert(onnx_path: Path, trt_path: Path, trt_docker_version) -> Non
         try:
             trt_dir.mkdir(parents=True, exist_ok=True)
         except Exception as e:
-            print(f"Не удалось создать директорию для вывода: {trt_dir}\n{e}", file=sys.stderr)
+            print(f"Не удалось создать директорию: {trt_dir}\n{e}", file=sys.stderr)
             sys.exit(1)
 
     onnx_dir: Path = real_onnx_path.parent
@@ -49,7 +49,7 @@ def tensorrt_convert(onnx_path: Path, trt_path: Path, trt_docker_version) -> Non
 
     try:
         subprocess.run(docker_cmd, check=True)
-        print(f"\nУспешно создан TensorRT-движок: {real_trt_path}")
+        print(f"\nУспешно создан TensorRT: {real_trt_path}")
     except subprocess.CalledProcessError as e:
         print("\nОшибка при выполнении trtexec внутри Docker:", file=sys.stderr)
         sys.exit(e.returncode)

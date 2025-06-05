@@ -19,7 +19,10 @@ def export_to_onnx(cfg: DictConfig, ckpt_path: Path):
     if target_cls_name in constants.MODEL_NAMES:
         model_name = target_cls_name
     else:
-        raise ValueError(f"Unsupported model class: {target_cls_name}")
+        raise ValueError(
+            f"Модель {target_cls_name} не поддерживается для экспорта в ONNX,"
+            f" используйте одну из: {', '.join(constants.MODEL_NAMES)}"
+        )
 
     pipeline = FullPipeline(model_name=model_name, ckpt_path=ckpt_path)
     pipeline.eval().cpu()

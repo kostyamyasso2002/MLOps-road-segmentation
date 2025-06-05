@@ -29,4 +29,4 @@ def run_inference(onnx_path: Path, image_path: Path, out_path: Path) -> None:
     # 8) Сохраняем PNG
     out_path.parent.mkdir(parents=True, exist_ok=True)
     write_png(mask_tensor, str(out_path))
-    print(f"Saved binary mask to: {out_path}")
+    print(f"Предсказание сохранено: {out_path}")

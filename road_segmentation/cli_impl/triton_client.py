@@ -56,4 +56,4 @@ def run_triton_triton_request(
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     write_png(mask_tensor, str(output_path))
-    print(f"Saved binary mask to: {output_path}")
+    print(f"Предсказание сохранено: {output_path}")

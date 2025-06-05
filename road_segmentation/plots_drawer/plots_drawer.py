@@ -35,7 +35,7 @@ class PlotMetricsCallback(Callback):
         val_f1_history = client.get_metric_history(run_id, key="val_f1")
 
         if not train_loss_history or not val_loss_history or not val_f1_history:
-            print(f"[PlotMetricsCallback] Не удалось найти все три метрики в MLflow-рaне {run_id}.")
+            print(f"[PlotMetricsCallback] Не удалось найти все метрики в MLflow-рaне {run_id}.")
             return
 
         fig1, ax1 = plt.subplots()
