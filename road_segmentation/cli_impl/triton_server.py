@@ -20,9 +20,6 @@ def run_triton_server(
     use_gpus: bool,
     triton_docker_version: str = "24.04-py3",
 ) -> None:
-    """
-    Запускает Triton Inference Server с моделью из указанной директории.
-    """
     if model_type != ModelType.ONNX and model_type != ModelType.TRT:
         raise ValueError("Unsupported model type. Use 'onnx' or 'trt'.")
 
@@ -80,5 +77,5 @@ def run_triton_server(
     try:
         subprocess.run(cmd, check=True)
     except subprocess.CalledProcessError as e:
-        print(f"Ошибка при выполнении docker run: {e}", file=sys.stderr)
+        print(f"Error while executing docker run: {e}", file=sys.stderr)
         sys.exit(e.returncode)

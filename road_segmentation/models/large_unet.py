@@ -52,9 +52,6 @@ class _Up(nn.Module):
         return self.conv(input)
 
 
-# --------------------------- main network --------------------------- #
-
-
 class LargeUNet(pl.LightningModule):
     def __init__(self, lr: float, threshold: float, pos_weight: float):
         super().__init__()
@@ -75,9 +72,9 @@ class LargeUNet(pl.LightningModule):
         )
 
         # decoder
-        self.up3 = _Up(512, 256)  # 50×50, skip from down3
-        self.up2 = _Up(256, 128)  # 100×100, skip from down2
-        self.up1 = _Up(128, 64)  # 200×200, skip from down1
+        self.up3 = _Up(512, 256)
+        self.up2 = _Up(256, 128)
+        self.up1 = _Up(128, 64)
 
         self.head = nn.Sequential(
             nn.Conv2d(64, 32, 3, padding=1, bias=False),

@@ -18,8 +18,7 @@ class PlotMetricsCallback(Callback):
             client = logger.experiment
         except AttributeError:
             print(
-                "[PlotMetricsCallback] Внимание: тренер не использует "
-                "MLFlowLogger, пропускаем построение графиков."
+                "[PlotMetricsCallback] Warning: MLFlowLogger is not used, skipping plots drawing."
             )
             return
         try:
@@ -35,7 +34,7 @@ class PlotMetricsCallback(Callback):
         val_f1_history = client.get_metric_history(run_id, key="val_f1")
 
         if not train_loss_history or not val_loss_history or not val_f1_history:
-            print(f"[PlotMetricsCallback] Не удалось найти все метрики в MLflow-рaне {run_id}.")
+            print(f"Didn't find all metrics in MLFlow-runner {run_id}.")
             return
 
         fig1, ax1 = plt.subplots()
@@ -64,4 +63,4 @@ class PlotMetricsCallback(Callback):
         fig3.savefig(self.out_dir / "val_loss_curve.png")
         plt.close(fig3)
 
-        print(f"[PlotMetricsCallback] Графики сохранены в папке: {self.out_dir}")
+        print(f"Plots saved: {self.out_dir}")

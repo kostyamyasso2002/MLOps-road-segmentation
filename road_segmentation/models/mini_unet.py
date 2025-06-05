@@ -45,16 +45,16 @@ class MiniUNet(pl.LightningModule):
         self.f1 = torchmetrics.F1Score(task="binary")
         self.accuracy = torchmetrics.Accuracy(task="binary")
 
-    def forward(self, input):
-        c1 = self.down1(input)
+    def forward(self, inp):
+        c1 = self.down1(inp)
         c2 = self.down2(self.pool(c1))
         c3 = self.down3(self.pool(c2))
 
         u2 = self.up2(c3)
-        input = self.conv2(torch.cat([u2, c2], dim=1))
-        u1 = self.up1(input)
-        input = self.conv1(torch.cat([u1, c1], dim=1))
-        return self.final(input)
+        inp = self.conv2(torch.cat([u2, c2], dim=1))
+        u1 = self.up1(inp)
+        inp = self.conv1(torch.cat([u1, c1], dim=1))
+        return self.final(inp)
 
     # Lightning steps
     def _shared_step(self, batch, stage: str):

@@ -44,12 +44,12 @@ def tensorrt_convert(onnx_path: Path, trt_path: Path, trt_docker_version) -> Non
         f"--maxShapes=raw_image:{constants.TRT_MAX_SHAPE}",
     ]
 
-    print("Запускаем Docker-контейнер для конвертации ONNX -> TRT:")
+    print("Running Docker converting ONNX -> TRT:")
     print(" ".join(docker_cmd))
 
     try:
         subprocess.run(docker_cmd, check=True)
-        print(f"\nУспешно создан TensorRT: {real_trt_path}")
+        print(f"\nTensorRT created: {real_trt_path}")
     except subprocess.CalledProcessError as e:
-        print("\nОшибка при выполнении trtexec внутри Docker:", file=sys.stderr)
+        print("\nError while executing trtexec inside Docker:", file=sys.stderr)
         sys.exit(e.returncode)

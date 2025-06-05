@@ -12,16 +12,13 @@ from road_segmentation.production.pipeline import FullPipeline
 
 
 def export_to_onnx(cfg: DictConfig, ckpt_path: Path):
-    """
-    Экспортирует модель вместе с пайплайном препроцессинга и постпроцессинга в ONNX.
-    """
     target_cls_name = cfg.model._target_.split(".")[-2]
     if target_cls_name in constants.MODEL_NAMES:
         model_name = target_cls_name
     else:
         raise ValueError(
-            f"Модель {target_cls_name} не поддерживается для экспорта в ONNX,"
-            f" используйте одну из: {', '.join(constants.MODEL_NAMES)}"
+            f"Model {target_cls_name} ONNX convertation not supported,"
+            f" use one of: {', '.join(constants.MODEL_NAMES)}"
         )
 
     pipeline = FullPipeline(model_name=model_name, ckpt_path=ckpt_path)
@@ -49,7 +46,7 @@ def export_to_onnx(cfg: DictConfig, ckpt_path: Path):
             constants.ONNX_OUTPUT_NAME: {0: "batch", 2: "height", 3: "width"},
         },
     )
-    print(f"ONNX модель сохранена в: {onnx_path}")
+    print(f"ONNX model saved: {onnx_path}")
 
     root_dir = Path(__file__).resolve().parents[2]
     (root_dir / constants.HYDRA_OUTPUT_DIR / constants.ONNX_MODEL_NAME).unlink(missing_ok=True)
