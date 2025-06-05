@@ -23,7 +23,7 @@ def run_inference(onnx_path: Path, image_path: Path, out_path: Path) -> None:
 
     # 5) Передаём в ONNXRuntime → получаем numpy-маску shape=(1, 1, H_mask, W_mask)
     ort_outs = sess.run([output_name], {input_name: img_batch})
-    mask_np = ort_outs[0]  # numpy.uint8, (1, 1, H_mask, W_mask)
+    mask_np = ort_outs[0].astype(np.uint8) * 255  # numpy.uint8, (1, 1, H_mask, W_mask)
 
     # 6) Убираем batch и канал → shape=(H_mask, W_mask)
     mask_2d = mask_np.squeeze(0).squeeze(0)  # numpy.uint8, (H_mask, W_mask)

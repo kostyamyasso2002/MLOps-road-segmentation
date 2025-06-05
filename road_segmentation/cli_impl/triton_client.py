@@ -78,7 +78,7 @@ def run_triton_triton_request(
     # mask_batch: numpy.uint8, shape=(1,1,H_mask,W_mask)
 
     # 5) Сохраняем PNG: убираем batch=1 и канал=1 → (H, W)
-    mask_2d = mask_batch.squeeze(0).squeeze(0)  # numpy.uint8, shape=(H, W)
+    mask_2d = mask_batch.squeeze(0).squeeze(0).astype(np.uint8) * 255  # numpy.uint8, shape=(H, W)
     mask_tensor = torch.from_numpy(mask_2d).unsqueeze(0)  # torch.uint8, shape=(1, H, W)
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
