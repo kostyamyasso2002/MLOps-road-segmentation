@@ -1,0 +1,193 @@
+# Распознавание дорог на спутниковых снимках
+
+**Автор:** Мясников Константин
+
+## Описание проекта
+
+### Постановка задачи
+
+Дан спутниковый снимок некоторой населённой местности. Необходимо выделить на этом снимке автомобильные дороги.
+
+### Формат входных и выходных данных
+
+- **Вход:** цветная картинка в формате PNG размера `n × m`.
+- **Выход:** массив размера `n × m`, состоящий из нулей и единиц, где:
+  - `1` — пиксель дороги,
+  - `0` — пиксель не-дороги.
+
+### Метрики
+
+Для оценки качества модели используются:
+
+- **Accuracy**: примерный показатель — более **90%**
+- **F1-score**: примерно **80%**.
+
+### Валидация
+
+Используется стандартный подход к валидации: некоторое количество снимков выделяется в валидационный набор, на котором модель не обучается. Доля настраивается с помощью конфига - параметр `val_split` в файле `configs/datamodule/road_data.yaml`.
+
+### Данные
+
+Данные берутся из набора:
+
+- **Источник:** https://www.aicrowd.com/challenges/epfl-ml-road-segmentation
+- **Состав:** 100 спутниковых снимков и 100 соответствующих масок дорог. Также есть 50 неразмеченных снимков.
+
+### Используемая модель
+
+- **Архитектура:** сверточная нейронная сеть (CNN) с U-Net архитектурой. Можно выбрать из двух вариантов (в файле `configs/train.yaml`):
+  - `mini_unet` - 467K параметров.
+  - `large_unet` - 12.5M параметров.
+- **Выход модели:** карта вероятностей/классов размером `n × m`.
+- **Функция потерь:** стандартный лог-лосс (`Binary Cross-Entropy`), с учетом классового дисбаланса (веса классов могут быть настроены в конфиге `configs/model/mini_unet.yaml` или `configs/model/large_unet.yaml` в зависимости от выбора модели).
+- **Оптимизатор:** `torch.optim.Adam`.
+- **Аугментации:** случайные горизонтальные и вертикальные отражения, случайное совмещение четырех изображений, случайный кроп полученного изображения.
+
+---
+
+## Техническая часть
+
+### Setup
+
+Этот раздел описывает, как настроить окружение для разработки, обучения и инференса.
+
+1. **Prerequisites:**
+
+   - Python 3.11 или выше
+   - Poetry для управления зависимостями
+   - Git
+   - Pre-commit (опционально, будет также установлен через Poetry)
+   - Cuda — для работы с GPU (опционально, если планируется использовать GPU)
+   - Docker — для запуска triton сервера (опционально, если планируется использовать triton сервер)
+
+2. **Клонирование репозитория:**
+   ```bash
+   git clone https://github.com/kostyamyasso2002/MLOps-road-segmentation.git
+   cd MLOps-road-segmentation
+   ```
+3. **Установка зависимостей и настройка хуков:**
+
+   ```bash
+   poetry install
+   poetry run pre-commit install
+   ```
+
+   Если `pre-commit` установлен глобально, то можно вместо второй команды использовать:
+
+   ```bash
+   pre-commit install
+   ```
+
+4. **Настройка ключей DVC:**
+
+   ```bash
+   poetry run dvc remote modify r2 --local access_key_id 81143b61b82ee32c3b051a76f2110615
+   poetry run dvc remote modify r2 --local secret_access_key 505bbe1d1266f2dc631742045ff52e15ce34b5f169f8c7ada96ba3331974b81c
+   ```
+
+5. **Проверка хуков:**
+   ```bash
+   poetry run pre-commit run -a
+   ```
+   Альтернативно, если `pre-commit` установлен глобально:
+   ```bash
+   pre-commit run -a
+   ```
+
+### Train
+
+Все команды запускаются из корневой директории проекта.
+
+1. **Запуск сервера MLflow:**
+   Если сервер уже запущен, то можно пропустить этот шаг. Если нет, то запустите его, например, с помощью команды:
+
+   ```bash
+   poetry run mlflow server --host 127.0.0.1 --port 8080 --backend-store-uri sqlite:///mlflow.db --default-artifact-root ./mlruns
+   ```
+
+2. **Настройка конфигов (опционально, при желании что-то изменить):**
+   Конфигурирование проекта осуществляется через Hydra. Конфигурационные файлы находятся в директории `configs/`. Основной конфиг для обучения находится в `configs/train.yaml`. Вы можете изменить параметры обучения, такие как количество эпох, акселератор (GPU/CPU), папку для сохранения графиков, и другие параметры.
+
+   В поддиректории `configs/datamodule/` находятся конфиги для настройки датасета, в поддиректории `configs/model/` — для настройки модели, а в `configs/logger/` — для настройки логирования.
+
+3. **Запуск обучения:**
+   Для запуска обучения используйте следующую команду:
+
+   ```bash
+   poetry run python -m road_segmentation.commands train
+   ```
+
+   Во время первого запуска данные будут загружены из DVC автоматически. Если данные уже загружены, то этот шаг будет пропущен.
+
+   Время обучения с дефолтными параметрами составляет около 20 минут (на nvidia 3090).
+
+   Во время обучения вы можете следить за процессом в MLFlow UI, расположенном по адресу, указанному в конфиге (по умолчанию [http://127.0.1:8080](http://127.0.1:8080)). Сохраняются следующие метрики: loss (train и val), accuracy (train и val), f1-score (train и val), epoch, а также графики обучения (вкладка Model metrics).
+
+   После завершения обучения, информация о запуске будет сохранена в папку `outputs/{date}/{time}/`. Там будут находиться:
+
+   - Конфигурационный файл с параметрами обучения.
+   - Сама обученная модель в формате `*.ckpt`.
+
+   Также, в папке `plots/{run_name}` (где `run_name` — это имя запуска из MLFlow) будут сохранены графики обучения.
+
+### Production preparation
+
+После конца обучения, модель сохраняется в формате `*.ckpt` в папке `outputs/{date}/{time}/`. Также модель автоматически конвертируется в формат ONNX и сохраняется в папку `outputs/{date}/{time}/` в формате ` *.onnx`.
+
+Также в папке `outputs` создаются символические ссылки на последнюю обученную модель и ONNX модель, чтобы их было проще использовать в дальнейшем. В дальнейшем для инференса будет использоваться ONNX формат модели.
+
+Для конвертации модели в tensorrt формат используется команда (для этой команды требуется установленный docker, первый запуск может занять некоторое время из-за загрузки образа):
+
+```bash
+poetry run python -m road_segmentation.commands tensorrt_convert --onnx <path_to_onnx_model> --trt <output_path>
+```
+
+Например, для конвертации последней модели в tensorrt формат:
+
+```bash
+poetry run python -m road_segmentation.commands tensorrt_convert --onnx outputs/model_full.onnx --trt model_converted.trt
+```
+
+### Inference
+
+Инференс модели может быть осуществлён двумя способами:
+
+1. **С помощью скрипта одноразового запуска:**
+   Для запуска инференса на одном изображении используйте следующую команду:
+   ```bash
+   poetry run python -m road_segmentation.commands infer --onnx <path_to_model> --image <path_to_image> --output <path_to_output_image>
+   ```
+   Например (если вы хотите сделать инференс на последней модели):
+   ```bash
+   poetry run python -m road_segmentation.commands infer --onnx outputs/model_full.onnx --image data/dataset/test_set_images/test_1/test_1.png --out output_image.png
+   ```
+2. **С помощью Triton сервера:**
+   Запуск Triton сервера осуществляется с помощью команды (тут также используется Docker, поэтому первый запуск может занять некоторое время из-за загрузки образа). Поддерживается как onnx модель, так и tensorrt модель. Для запуска Triton сервера используйте следующую команду:
+
+   ```bash
+   poetry run python -m road_segmentation.commands triton_server --model_type <onnx or trt> --model-path <path_to_model> [--container-name <container_name>] [--http-port <http_port>] [--use-gpus <true/false>]
+   ```
+
+   Например, для запуска Triton сервера с последней onnx моделью (в случае, если порт 8000 уже занят, можно указать другой порт):
+
+   ```bash
+   poetry run python -m road_segmentation.commands triton_server --model_type onnx --model-path outputs/model_full.onnx
+   ```
+
+   или в случае tensorrt модели:
+
+   ```bash
+   poetry run python -m road_segmentation.commands triton_server --model_type trt --model-path model_converted.trt
+   ```
+
+   Для запроса к Triton серверу можно использовать следующую команду в другой вкладке. Если сервер запущен не на 8000 порту, то укажите нужный порт через флаг `--triton_url`, нужно указать полный url, например `http://localhost:8100`:
+
+   ```bash
+   poetry run python -m road_segmentation.commands triton_client --image <path_to_image> --out <path_to_output_image> [--triton_url <triton_server_url>] [--model-name <model_name>]
+   ```
+
+   Например, запрос на инференс первого изображения из тестового набора:
+
+   ```bash
+   poetry run python -m road_segmentation.commands triton_client --image data/dataset/test_set_images/test_1/test_1.png --out out_image.png
+   ```

@@ -1,0 +1,4 @@
+_target_: pytorch_lightning.loggers.MLFlowLogger
+experiment_name: road-seg
+tracking_uri: http://127.0.0.1:8080
+log_model: false
